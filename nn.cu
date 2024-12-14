@@ -12,9 +12,11 @@ typedef struct {
     float *weights1;
     float *weights2;
     float *weights3;  
+
     float *biases1;
     float *biases2;
-    float *biases3;     
+    float *biases3;   
+
     float *grad_layer1;
     float *grad_layer2;
     float *grad_layer3;  
@@ -32,6 +34,20 @@ typedef struct {
 
   float *losses;
 } Outputs;
+
+__global__ void matmut_add(int batch_size, int n, int out_w, float* input, float* weights, float* biases, float* output)
+{
+  int column = blockIdx.x*blockDim.x + threadIdx.x;
+  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < batch_size && column < out_w)
+  {
+    output[row*out_w+column] = biases[column];
+    for(int i = 0; i < n; i++)
+    {
+      output[row*out_w+column] += weights[i*out_w + column] * input[row*n + i];
+    }
+  }
+}
 
 __global__ void init_kaiming_normal(int W, int H, float* matrix){
     const uint row = blockDim.x * blockIdx.x + threadIdx.x;
