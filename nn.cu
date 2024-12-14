@@ -49,6 +49,22 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float* input, f
   }
 }
 
+__global__ void linear_backward(int batch_size, int n, int out_w, float* weights, float* biases, float* d_l, float* out_d_l)
+{
+  int column = blockIdx.x*blockDim.x + threadIdx.x;
+  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < batch_size && column < out_w)
+  {
+    float dl = 0.f;
+    for(int i = 0; i < n; i++)
+    {
+      float w = weights[i*out_w + column];
+      dl += w*d_l[row*n + i];
+    }
+    out_d_l[row*out_w + column] = dl;
+  }
+}
+
 __global__ void relu_forward(int w, int h, float* a, float* b)
 {
   int column = blockIdx.x*blockDim.x + threadIdx.x;
@@ -57,6 +73,17 @@ __global__ void relu_forward(int w, int h, float* a, float* b)
   {
     float activation = a[row*w+column];
     b[row*w+column] =  activation > 0.f ? activation : 0.f;
+  }
+}
+
+__global__ void relu_backwards(int w, int h, float* a, float* d_l, float* b)
+{
+  int column = blockIdx.x*blockDim.x + threadIdx.x;
+  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < h && column < w)
+  {
+    float activation = a[row*w+column];
+    b[row*w+column] = activation > 0.f ? d_l[row*w+column] : 0.f;
   }
 }
 
