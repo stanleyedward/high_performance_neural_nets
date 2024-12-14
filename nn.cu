@@ -119,6 +119,30 @@ __global__ void init_kaiming_normal(int W, int H, float* matrix){
     }
 }
 
+__global__ void cross_entropy(int w, int h, float* preds, float* real, float* output)
+{
+  const uint idx = blockIdx.x*blockDim.x + threadIdx.x;
+  if (idx < h)
+  {
+    float loss = 0.f;
+    for (int i = 0; i<w; i++)
+    {
+      loss -= real[idx*w + i] * log(max(1e-6, preds[idx*w + i]));
+    }
+    output[idx] = loss;
+  }
+}
+
+__global__ void cross_entropy_backwards(int w, int h, float* preds, float* real, float* output)
+{
+  const uint col = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < h && col < w)
+  {
+    output[row*w + col] = preds[row*w + col] - real[row*w + col];
+  }
+}
+
 void init_parameters(float* weights, float* biases, int W, int H)
 {
 // weights
