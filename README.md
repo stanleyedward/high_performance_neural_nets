@@ -1,6 +1,10 @@
 ## nn cuda
 cuda 121
 nn
+### TODO
+
+- backward todo
+
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh

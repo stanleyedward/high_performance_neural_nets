@@ -197,6 +197,10 @@ void forward(NeuralNetwork* nn, Outputs *op, float* input, float* labels){
     cudaDeviceSynchronize();
 }
 
+void backward(){
+  
+}
+
 
 int main(){
     NeuralNetwork nn;
