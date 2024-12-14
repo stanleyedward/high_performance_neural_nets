@@ -37,8 +37,8 @@ typedef struct {
 
 __global__ void linear_forward(int batch_size, int n, int out_w, float* input, float* weights, float* biases, float* output)
 {
-  int column = blockIdx.x*blockDim.x + threadIdx.x;
-  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  const uint column = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
   if (row < batch_size && column < out_w)
   {
     output[row*out_w+column] = biases[column];
@@ -51,8 +51,8 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float* input, f
 
 __global__ void linear_backward(int batch_size, int n, int out_w, float* weights, float* biases, float* d_l, float* out_d_l)
 {
-  int column = blockIdx.x*blockDim.x + threadIdx.x;
-  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  const uint column = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
   if (row < batch_size && column < out_w)
   {
     float dl = 0.f;
@@ -67,8 +67,8 @@ __global__ void linear_backward(int batch_size, int n, int out_w, float* weights
 
 __global__ void relu_forward(int w, int h, float* a, float* b)
 {
-  int column = blockIdx.x*blockDim.x + threadIdx.x;
-  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  const uint column = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
   if (row < h && column < w)
   {
     float activation = a[row*w+column];
@@ -78,12 +78,33 @@ __global__ void relu_forward(int w, int h, float* a, float* b)
 
 __global__ void relu_backwards(int w, int h, float* a, float* d_l, float* b)
 {
-  int column = blockIdx.x*blockDim.x + threadIdx.x;
-  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  const uint column = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
   if (row < h && column < w)
   {
     float activation = a[row*w+column];
     b[row*w+column] = activation > 0.f ? d_l[row*w+column] : 0.f;
+  }
+}
+
+__global__ void softmax(int w, int h, float* a, float* b)
+{
+  const uint col = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < h && col < w)
+  {
+    //subtract with maxval for numeric stability
+    float maxval = a[row*w];
+    for (int i = 1; i<w; i++)
+    {
+      maxval = max(maxval, a[row*w + i]);
+    }
+    float divisor = 0.f;
+    for (int i = 0; i<w; i++)
+    {
+      divisor += exp(a[row*w + i] - maxval);
+    }
+    b[row*w + col] = exp(a[row*w + col]-maxval)/(divisor);
   }
 }
 
