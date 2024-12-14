@@ -186,9 +186,17 @@ void init_outputs(Outputs* op){
     cudaMalloc((void**) &op->losses, BATCH_SIZE*sizeof(float));
 }
 
-void forward(NeuralNetwork* nn, Outputs *op, float* input){
-    linear_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_SIZE, input, nn->weights1, nn->weights1, op->x1);
+void forward(NeuralNetwork* nn, Outputs *op, float* input, float* labels){
+    linear_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_SIZE, input, nn->weights1, nn->biases1, op->x1);
+    relu_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->x1, op->a1);
+    linear_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, HIDDEN_SIZE, HIDDEN_SIZE, op->a1, nn->weights2, nn->biases2, op->x2);
+    relu_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->x2, op->a2);
+    linear_forward<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, HIDDEN_SIZE, OUTPUT_SIZE, op->a2, nn->weights3, nn->biases3, op->x3);
+    softmax<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(OUTPUT_SIZE, BATCH_SIZE, op->x3, op->a3);
+    cross_entropy<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1, 1), dim3(BLOCK_SIZE, 1, 1)>>>(OUTPUT_SIZE, BATCH_SIZE, op->a3, labels, op->losses);
+    cudaDeviceSynchronize();
 }
+
 
 int main(){
     NeuralNetwork nn;
