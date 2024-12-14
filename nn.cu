@@ -35,7 +35,7 @@ typedef struct {
   float *losses;
 } Outputs;
 
-__global__ void matmut_add(int batch_size, int n, int out_w, float* input, float* weights, float* biases, float* output)
+__global__ void linear_forward(int batch_size, int n, int out_w, float* input, float* weights, float* biases, float* output)
 {
   int column = blockIdx.x*blockDim.x + threadIdx.x;
   int row = blockIdx.y*blockDim.y + threadIdx.y;
@@ -46,6 +46,17 @@ __global__ void matmut_add(int batch_size, int n, int out_w, float* input, float
     {
       output[row*out_w+column] += weights[i*out_w + column] * input[row*n + i];
     }
+  }
+}
+
+__global__ void relu_forward(int w, int h, float* a, float* b)
+{
+  int column = blockIdx.x*blockDim.x + threadIdx.x;
+  int row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < h && column < w)
+  {
+    float activation = a[row*w+column];
+    b[row*w+column] =  activation > 0.f ? activation : 0.f;
   }
 }
 
