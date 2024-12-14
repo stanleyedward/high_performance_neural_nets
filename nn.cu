@@ -186,6 +186,10 @@ void init_outputs(Outputs* op){
     cudaMalloc((void**) &op->losses, BATCH_SIZE*sizeof(float));
 }
 
+void forward(NeuralNetwork* nn, Outputs *op, float* input){
+    linear_forward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_SIZE, input, nn->weights1, nn->weights1, op->x1);
+}
+
 int main(){
     NeuralNetwork nn;
     initialize_nn(&nn);
@@ -193,4 +197,5 @@ int main(){
     Outputs op;
     init_outputs(&op);
 
+return 0;
 }
