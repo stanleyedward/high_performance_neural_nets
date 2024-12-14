@@ -20,6 +20,19 @@ typedef struct {
     float *grad_layer3;  
 } NeuralNetwork;
 
+typedef struct {
+  float *x1;
+  float *a1;
+
+  float *x2;
+  float *a2;
+  
+  float *x3;
+  float *a3;
+
+  float *losses;
+} Outputs;
+
 __global__ void init_kaiming_normal(int W, int H, float* matrix){
     const uint row = blockDim.x * blockIdx.x + threadIdx.x;
     const uint col = blockDim.y * blockIdx.y + threadIdx.y;
@@ -61,7 +74,24 @@ void initialize_nn(NeuralNetwork* nn){
     init_parameters(nn->weights3, nn->biases3, OUTPUT_SIZE, HIDDEN_SIZE);
 }
 
+void init_outputs(Outputs* op){
+    cudaMalloc((void**) &op->x1, HIDDEN_SIZE*BATCH_SIZE*sizeof(float));
+    cudaMalloc((void**) &op->a1, HIDDEN_SIZE*BATCH_SIZE*sizeof(float));
+
+    cudaMalloc((void**) &op->x2, HIDDEN_SIZE*BATCH_SIZE*sizeof(float));
+    cudaMalloc((void**) &op->a2, HIDDEN_SIZE*BATCH_SIZE*sizeof(float));
+
+    cudaMalloc((void**) &op->x3, OUTPUT_SIZE*BATCH_SIZE*sizeof(float));
+    cudaMalloc((void**) &op->a3, OUTPUT_SIZE*BATCH_SIZE*sizeof(float));
+
+    cudaMalloc((void**) &op->losses, BATCH_SIZE*sizeof(float));
+}
+
 int main(){
     NeuralNetwork nn;
+    initialize_nn(&nn);
+
+    Outputs op;
+    init_outputs(&op);
 
 }
