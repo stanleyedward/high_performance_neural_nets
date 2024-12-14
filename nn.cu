@@ -31,7 +31,7 @@ __global__ void init_kaiming_normal(int W, int H, float* matrix){
     }
 }
 
-void init_parameters(float* weights, float* biases, int W, int H, int BLOCK_SIZE)
+void init_parameters(float* weights, float* biases, int W, int H)
 {
 // weights
   dim3 numBlocks = dim3(ceil(W/(float)BLOCK_SIZE), ceil(H/(float)BLOCK_SIZE), 1);
@@ -48,17 +48,17 @@ void initialize_nn(NeuralNetwork* nn){
     cudaMalloc(&nn->weights1, HIDDEN_SIZE * INPUT_SIZE * sizeof(float));
     cudaMalloc(&nn->biases1, HIDDEN_SIZE * sizeof(float));
     cudaMalloc(&nn->grad_layer1, HIDDEN_SIZE * BATCH_SIZE * sizeof(float));
-    init_parameters(nn->weights1, nn->biases1, HIDDEN_SIZE, INPUT_SIZE, BLOCK_SIZE);
+    init_parameters(nn->weights1, nn->biases1, HIDDEN_SIZE, INPUT_SIZE);
 
     cudaMalloc(&nn->weights2, HIDDEN_SIZE * HIDDEN_SIZE * sizeof(float));
     cudaMalloc(&nn->biases2, HIDDEN_SIZE * sizeof(float));
     cudaMalloc(&nn->grad_layer2, HIDDEN_SIZE * BATCH_SIZE * sizeof(float));
-    init_parameters(nn->weights1, nn->biases1, HIDDEN_SIZE, HIDDEN_SIZE, BLOCK_SIZE);
+    init_parameters(nn->weights1, nn->biases1, HIDDEN_SIZE, HIDDEN_SIZE);
     
     cudaMalloc(&nn->weights3, OUTPUT_SIZE * HIDDEN_SIZE * sizeof(float));
     cudaMalloc(&nn->biases3, OUTPUT_SIZE * sizeof(float));
     cudaMalloc(&nn->grad_layer3, OUTPUT_SIZE * BATCH_SIZE * sizeof(float));
-    init_parameters(nn->weights3, nn->biases3, OUTPUT_SIZE, HIDDEN_SIZE, BLOCK_SIZE);
+    init_parameters(nn->weights3, nn->biases3, OUTPUT_SIZE, HIDDEN_SIZE);
 }
 
 int main(){
