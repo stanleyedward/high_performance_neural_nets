@@ -3,8 +3,12 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <fstream>
+#include <chrono>
 
 #define INPUT_SIZE 784
+#define LABELS_SIZE 10
 #define HIDDEN_SIZE 1024
 #define OUTPUT_SIZE 10
 #define BATCH_SIZE 64
@@ -234,13 +238,57 @@ void optimizer_step(NeuralNetwork* nn, Outputs* op, float* inputs){
     update_layer_params<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, INPUT_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, INPUT_SIZE, BATCH_SIZE, LR, nn->weights1, nn->biases1, inputs, nn->grad_layer1);
 }
 
+void read_mnist(const std::string filename, int length, float* x, float* y)
+{
+  int input_size = 784;
+  int labels = 10;
+
+  std::fstream fin;
+  fin.open(filename);
+  std::string row;
+  constexpr char delim = ',';
+  for(int i = 0; i<length; i++)
+  {
+    fin >> row;
+    int pos = row.find(delim);
+    int label = std::stoi(row.substr(0, pos+1));
+    for(int j = 0; j<labels; j++)
+    {
+      y[labels*i + j] = (j==label);
+    }
+    row.erase(0, pos+1);
+    for(int j = 0; j<input_size; j++)
+    {
+      pos = row.find(delim);
+      if (pos == std::string::npos)
+      {
+        pos = row.length() - 1;
+      }
+      x[i*input_size+j] = std::stof(row.substr(0, pos+1)) / 255; //normalize value
+      row.erase(0, pos+1);
+    }
+  }
+}
 
 int main(){
+    int train_length = 60000;
+    int test_length = 10000;
+
+    float* train_x = new float[INPUT_SIZE * train_length];
+    float* train_y = new float[LABELS_SIZE * train_length];
+    float* test_x = new float[INPUT_SIZE * test_length];
+    float* test_y = new float[LABELS_SIZE * test_length];
+
+    //load data
+    read_mnist("./mnist_train.csv", train_length, train_x, train_y);
+    read_mnist("./mnist_test.csv", test_length, test_x, test_y);
+    
+    //init network
     NeuralNetwork nn;
     initialize_nn(&nn);
-
     Outputs op;
     init_outputs(&op);
+
 
 return 0;
 }
