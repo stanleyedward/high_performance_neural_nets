@@ -14,9 +14,9 @@
 #define LABELS_SIZE 10
 #define HIDDEN_SIZE 1024
 #define OUTPUT_SIZE 10
-#define BATCH_SIZE 64
+#define BATCH_SIZE 32
 #define BLOCK_SIZE 16
-#define LR 0.03
+#define LR 0.001
 #define EPOCHS 10
 #define TRAIN_LENGTH 60000
 #define TEST_LENGTH 10000
@@ -417,6 +417,7 @@ int main()
   float *labels;
   cudaMalloc((void **)&input, INPUT_SIZE * BATCH_SIZE * sizeof(float));
   cudaMalloc((void **)&labels, LABELS_SIZE * BATCH_SIZE * sizeof(float));
+  cudaDeviceSynchronize();
 
   float *train_x = new float[INPUT_SIZE * TRAIN_LENGTH];
   float *train_y = new float[LABELS_SIZE * TRAIN_LENGTH];
@@ -433,15 +434,19 @@ int main()
   // init network
   NeuralNetwork nn;
   initialize_nn(&nn);
+  cudaDeviceSynchronize();
   Outputs op;
   init_outputs(&op);
+  cudaDeviceSynchronize();
 
   // train loop
   printf("train");
   train_loop(&nn, &op, train_x, train_y, input, labels, output_host, loss_host);
+  cudaDeviceSynchronize();
   //  test loop
   printf("test");
   test_loop(&nn, &op, test_x, test_y, input, labels, output_host, loss_host);
+  cudaDeviceSynchronize();
 
   // Free GPU memory
   cudaFree(input);
