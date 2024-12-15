@@ -7,6 +7,7 @@
 #define OUTPUT_SIZE 10
 #define BATCH_SIZE 64
 #define BLOCK_SIZE 16
+#define LR 0.03
 
 typedef struct {
     float *weights1;
@@ -220,13 +221,15 @@ void backward(NeuralNetwork* nn, Outputs *op, float* labels){
     cross_entropy_backwards<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(OUTPUT_SIZE, BATCH_SIZE, op->a3, labels, nn->grad_layer3);
     linear_backward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, OUTPUT_SIZE, HIDDEN_SIZE, nn->weights3, nn->biases3, nn->grad_layer3, nn->grad_layer2);
     relu_backwards<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->a2, nn->grad_layer2, nn->grad_layer2);
-    linear_backward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, HIDDEN_SIZE, INPUT_SIZE, nn->weights2, nn->biases2, nn->grad_layer2, nn->grad_layer1);
+    linear_backward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, HIDDEN_SIZE, HIDDEN_SIZE, nn->weights2, nn->biases2, nn->grad_layer2, nn->grad_layer1);
     relu_backwards<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->a1, nn->grad_layer1, nn->grad_layer1);
     cudaDeviceSynchronize();
 }
 
-void optimizer_step(){
-
+void optimizer_step(NeuralNetwork* nn, Outputs* op, float* inputs){
+    update_layer_params<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(OUTPUT_SIZE, HIDDEN_SIZE, BATCH_SIZE, LR, nn->weights3, nn->biases3, op->a2, nn->grad_layer3);
+    update_layer_params<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, HIDDEN_SIZE, BATCH_SIZE, LR, nn->weights2, nn->biases2, op->a1, nn->grad_layer2);
+    update_layer_params<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, INPUT_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, INPUT_SIZE, BATCH_SIZE, LR, nn->weights1, nn->biases1, inputs, nn->grad_layer1);
 }
 
 
