@@ -3,8 +3,10 @@ cuda 121
 nn
 ### TODO
 
-- backward todo
 
+- pin mem
+- softmax optim
+- matmul optim
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh
