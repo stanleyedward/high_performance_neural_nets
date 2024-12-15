@@ -1,6 +1,8 @@
 #include <curand.h>
 #include <curand_kernel.h>
 #include <cuda_runtime.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define INPUT_SIZE 784
 #define HIDDEN_SIZE 1024
@@ -231,7 +233,6 @@ void optimizer_step(NeuralNetwork* nn, Outputs* op, float* inputs){
     update_layer_params<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, HIDDEN_SIZE, BATCH_SIZE, LR, nn->weights2, nn->biases2, op->a1, nn->grad_layer2);
     update_layer_params<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, INPUT_SIZE + BLOCK_SIZE - 1/(float) BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, INPUT_SIZE, BATCH_SIZE, LR, nn->weights1, nn->biases1, inputs, nn->grad_layer1);
 }
-
 
 
 int main(){

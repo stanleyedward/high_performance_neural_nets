@@ -1,9 +1,11 @@
 ## nn cuda
 cuda 121
 nn
+
+
 ### TODO
 
-
+- read mnist dataset
 - pin mem
 - softmax optim
 - matmul optim
