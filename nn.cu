@@ -197,9 +197,19 @@ void forward(NeuralNetwork* nn, Outputs *op, float* input, float* labels){
     cudaDeviceSynchronize();
 }
 
-void backward(){
+void backward(NeuralNetwork* nn, Outputs *op, float* labels){
+    cross_entropy_backwards<<<dim3(OUTPUT_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(OUTPUT_SIZE, BATCH_SIZE, op->a3, labels, nn->grad_layer3);
+    linear_backward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, OUTPUT_SIZE, HIDDEN_SIZE, nn->weights3, nn->biases3, nn->grad_layer3, nn->grad_layer2);
+    relu_backwards<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->a2, nn->grad_layer2, nn->grad_layer2);
+    linear_backward<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(BATCH_SIZE, HIDDEN_SIZE, INPUT_SIZE, nn->weights2, nn->biases2, nn->grad_layer2, nn->grad_layer1);
+    relu_backwards<<<dim3(HIDDEN_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, BATCH_SIZE + BLOCK_SIZE - 1/(float)BLOCK_SIZE, 1), dim3(BLOCK_SIZE, BLOCK_SIZE, 1)>>>(HIDDEN_SIZE, BATCH_SIZE, op->a1, nn->grad_layer1, nn->grad_layer1);
+    cudaDeviceSynchronize();
+}
+
+void optimizer_step(){
   
 }
+
 
 
 int main(){
