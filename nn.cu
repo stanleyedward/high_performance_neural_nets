@@ -7,6 +7,7 @@
 #include <fstream>
 #include <chrono>
 #include <iomanip>
+#include <sstream>
 #include <iostream>
 
 #define INPUT_SIZE 784
@@ -253,37 +254,61 @@ void optimizer_step(NeuralNetwork *nn, Outputs *op, float *inputs)
   cudaDeviceSynchronize();
 }
 
-void read_mnist(const std::string filename, int length, float *x, float *y)
-{
-  int input_size = 784;
-  int labels = 10;
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <iostream>
 
-  std::fstream fin;
-  fin.open(filename);
-  std::string row;
-  constexpr char delim = ',';
-  for (int i = 0; i < length; i++)
-  {
-    fin >> row;
-    int pos = row.find(delim);
-    int label = std::stoi(row.substr(0, pos + 1));
-    for (int j = 0; j < labels; j++)
-    {
-      y[labels * i + j] = (j == label);
+void read_mnist(const std::string& filename, int length, float* x, float* y)
+{
+    const int input_size = 784;
+    const int labels = 10;
+    std::ifstream fin(filename);
+    
+    if (!fin.is_open()) {
+        throw std::runtime_error("Cannot open file: " + filename);
     }
-    row.erase(0, pos + 1);
-    for (int j = 0; j < input_size; j++)
+
+    // Skip the header row
+    std::string header;
+    std::getline(fin, header);
+
+    std::string row;
+    for(int i = 0; i < length; i++)
     {
-      pos = row.find(delim);
-      if (pos == std::string::npos)
-      {
-        pos = row.length() - 1;
-      }
-      x[i * input_size + j] = std::stof(row.substr(0, pos + 1)) / 255; // normalize value
-      row.erase(0, pos + 1);
+        if (!std::getline(fin, row)) {
+            throw std::runtime_error("Not enough rows in the file");
+        }
+
+        std::istringstream line_stream(row);
+        std::string value;
+
+        // Parse label
+        if (!std::getline(line_stream, value, ',')) {
+            throw std::runtime_error("Cannot read label");
+        }
+
+        int label = std::stoi(value);
+
+        // Initialize one-hot encoded label
+        for(int j = 0; j < labels; j++)
+        {
+            y[labels*i + j] = (j == label) ? 1.0f : 0.0f;
+        }
+
+        // Parse input features
+        for(int j = 0; j < input_size; j++)
+        {
+            if (!std::getline(line_stream, value, ',')) {
+                throw std::runtime_error("Not enough features in row");
+            }
+
+            x[i*input_size + j] = std::stof(value) / 255.0f;
+        }
     }
-  }
 }
+
 
 void train_loop(NeuralNetwork *nn, Outputs *op, float *train_x, float *train_y, float *input, float *labels, float *out_h, float *loss_h)
 {
