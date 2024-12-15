@@ -35,6 +35,25 @@ typedef struct {
   float *losses;
 } Outputs;
 
+__global__ void update_layer_params(int w, int h, int batch_size, float lr, float* weights, float* biases, float* layer_input, float* d_l)
+{
+  const uint column = blockIdx.x*blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y*blockDim.y + threadIdx.y;
+  if (row < h && column < w)
+  {
+    float dw = 0.f;
+    float db = 0.f;
+    for(int i = 0; i < batch_size; i++)
+    {
+      float input = layer_input[i*h + row];
+      float dl = d_l[i*w + column];
+      dw += input*dl;
+      db += dl;
+    }
+    weights[row*w + column] -= lr * dw / batch_size;
+    biases[column] -= lr * db / batch_size;
+  }
+}
 __global__ void linear_forward(int batch_size, int n, int out_w, float* input, float* weights, float* biases, float* output)
 {
   const uint column = blockIdx.x*blockDim.x + threadIdx.x;
@@ -207,7 +226,7 @@ void backward(NeuralNetwork* nn, Outputs *op, float* labels){
 }
 
 void optimizer_step(){
-  
+
 }
 
 
