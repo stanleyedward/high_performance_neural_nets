@@ -34,7 +34,7 @@ typedef struct
 } NeuralNetwork;
 
 typedef struct
-{ 
+{
   float *x1;
   float *a1;
 
@@ -283,7 +283,7 @@ void read_mnist(const std::string filename, int length, float *x, float *y)
   }
 }
 
-void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, float* input, float* labels, float* out_h, float* loss_h)
+void train_loop(NeuralNetwork *nn, Outputs *op, float *train_x, float *train_y, float *input, float *labels, float *out_h, float *loss_h)
 {
 
   float total_time = 0.f;
@@ -304,9 +304,9 @@ void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, 
       backward(nn, op, labels);
       optimizer_step(nn, op, input);
 
-      
       cudaMemcpy(out_h, op->a3, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
       cudaMemcpy(loss_h, op->losses, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+      cudaDeviceSynchronize();
 
       for (int i = 0; i < BATCH_SIZE; i++)
       {
@@ -314,17 +314,17 @@ void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, 
         float max_2 = 0.f;
         int i1 = 0;
         int i2 = 0;
-        for (int j = 0; j<LABELS_SIZE; j++)
+        for (int j = 0; j < LABELS_SIZE; j++)
         {
-          if (out_h[i*LABELS_SIZE + j] > max_1)
+          if (out_h[i * LABELS_SIZE + j] > max_1)
           {
-            max_1 = out_h[i*LABELS_SIZE + j];
+            max_1 = out_h[i * LABELS_SIZE + j];
             i1 = j;
           }
-          
-          if (train_y[batch*BATCH_SIZE*LABELS_SIZE + i*LABELS_SIZE + j] > max_2)
+
+          if (train_y[batch * BATCH_SIZE * LABELS_SIZE + i * LABELS_SIZE + j] > max_2)
           {
-            max_2 = train_y[batch*BATCH_SIZE*LABELS_SIZE + i*LABELS_SIZE + j];
+            max_2 = train_y[batch * BATCH_SIZE * LABELS_SIZE + i * LABELS_SIZE + j];
             i2 = j;
           }
         }
@@ -337,33 +337,114 @@ void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, 
     printf("Total Loss: %f\n", cum_loss);
   }
 }
-  int main()
+
+void test_loop(NeuralNetwork *nn, Outputs *op, float *test_x, float *test_y, float *input, float *labels, float *out_h, float *loss_h)
+{
+  float cum_loss = 0.f;
+  int correct = 0;
+  int total = 0;
+  for (int batch = 0; batch < TEST_LENGTH / BATCH_SIZE; batch++)
   {
-    float *input;
-    float *labels;
-    cudaMalloc((void**) &input, INPUT_SIZE*BATCH_SIZE*sizeof(float));
-    cudaMalloc((void**) &labels, LABELS_SIZE*BATCH_SIZE*sizeof(float));
+    total += BATCH_SIZE;
+    cudaMemcpy(input, &test_x[batch * BATCH_SIZE * INPUT_SIZE], BATCH_SIZE * INPUT_SIZE * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(labels, &test_y[batch * BATCH_SIZE * LABELS_SIZE], BATCH_SIZE * LABELS_SIZE * sizeof(float), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
 
-    float *train_x = new float[INPUT_SIZE * TRAIN_LENGTH];
-    float *train_y = new float[LABELS_SIZE * TRAIN_LENGTH];
-    float *test_x = new float[INPUT_SIZE * TEST_LENGTH];
-    float *test_y = new float[LABELS_SIZE * TEST_LENGTH];
+    forward(nn, op, input, labels);
 
-    float *output_host = new float[OUTPUT_SIZE * BATCH_SIZE];
-    float *loss_host = new float[BATCH_SIZE];
+    cudaMemcpy(out_h, op->a3, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(loss_h, op->losses, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
 
-    // load data
-    read_mnist("./mnist_train.csv", TRAIN_LENGTH, train_x, train_y);
-    read_mnist("./mnist_test.csv", TEST_LENGTH, test_x, test_y);
+    for (int i = 0; i < BATCH_SIZE; i++)
+    {
+      float max_1 = 0.f;
+      float max_2 = 0.f;
+      int i1 = 0;
+      int i2 = 0;
+      for (int j = 0; j < LABELS_SIZE; j++)
+      {
+        if (out_h[i * LABELS_SIZE + j] > max_1)
+        {
+          max_1 = out_h[i * LABELS_SIZE + j];
+          i1 = j;
+        }
 
-    // init network
-    NeuralNetwork nn;
-    initialize_nn(&nn);
-    Outputs op;
-    init_outputs(&op);
-
-    // train loop
-    //  test loop
-
-    return 0;
+        if (test_y[batch * BATCH_SIZE * LABELS_SIZE + i * LABELS_SIZE + j] > max_2)
+        {
+          max_2 = test_y[batch * BATCH_SIZE * LABELS_SIZE + i * LABELS_SIZE + j];
+          i2 = j;
+        }
+      }
+      correct += (i1 == i2);
+      cum_loss += loss_h[i];
+    }
   }
+  printf("[INFO] TEST\n");
+  printf("Total Accuracy: %f\n", (float)correct / total);
+  printf("Total Loss: %f\n", cum_loss);
+}
+int main()
+{
+  float *input;
+  float *labels;
+  cudaMalloc((void **)&input, INPUT_SIZE * BATCH_SIZE * sizeof(float));
+  cudaMalloc((void **)&labels, LABELS_SIZE * BATCH_SIZE * sizeof(float));
+
+  float *train_x = new float[INPUT_SIZE * TRAIN_LENGTH];
+  float *train_y = new float[LABELS_SIZE * TRAIN_LENGTH];
+  float *test_x = new float[INPUT_SIZE * TEST_LENGTH];
+  float *test_y = new float[LABELS_SIZE * TEST_LENGTH];
+
+  float *output_host = new float[OUTPUT_SIZE * BATCH_SIZE];
+  float *loss_host = new float[BATCH_SIZE];
+
+  // load data
+  read_mnist("./mnist_train.csv", TRAIN_LENGTH, train_x, train_y);
+  read_mnist("./mnist_test.csv", TEST_LENGTH, test_x, test_y);
+
+  // init network
+  NeuralNetwork nn;
+  initialize_nn(&nn);
+  Outputs op;
+  init_outputs(&op);
+
+  // train loop
+  printf("train");
+  train_loop(&nn, &op, train_x, train_y, input, labels, output_host, loss_host);
+  //  test loop
+  printf("test");
+  test_loop(&nn, &op, test_x, test_y, input, labels, output_host, loss_host);
+
+  // Free GPU memory
+  cudaFree(input);
+  cudaFree(labels);
+  cudaFree(nn.weights1);
+  cudaFree(nn.weights2);
+  cudaFree(nn.weights3);
+  cudaFree(nn.biases1);
+  cudaFree(nn.biases2);
+  cudaFree(nn.biases3);
+  cudaFree(nn.grad_layer1);
+  cudaFree(nn.grad_layer2);
+  cudaFree(nn.grad_layer3);
+
+  // do the same for Outputs op
+  cudaFree(op.x1);
+  cudaFree(op.a1);
+  cudaFree(op.x2);
+  cudaFree(op.a2);
+  cudaFree(op.x3);
+  cudaFree(op.a3);
+  cudaFree(op.losses);
+
+  // Free CPU memory (allocated with 'new')
+  delete[] train_x;
+  delete[] train_y;
+  delete[] test_x;
+  delete[] test_y;
+  delete[] output_host;
+  delete[] loss_host;
+
+  return 0;
+}
