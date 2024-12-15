@@ -332,6 +332,9 @@ void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, 
         cum_loss += loss_h[i];
       }
     }
+    printf("[INFO] Epoch %d\n", epoch);
+    printf("Total Accuracy: %f\n", (float)correct / total);
+    printf("Total Loss: %f\n", cum_loss);
   }
 }
   int main()
