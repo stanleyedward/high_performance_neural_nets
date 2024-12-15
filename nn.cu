@@ -6,6 +6,8 @@
 #include <string.h>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
+#include <iostream>
 
 #define INPUT_SIZE 784
 #define LABELS_SIZE 10
