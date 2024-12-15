@@ -283,7 +283,7 @@ void read_mnist(const std::string filename, int length, float *x, float *y)
   }
 }
 
-void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, float* input, float* labels, float* output_host, float* loss_host)
+void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, float* input, float* labels, float* out_h, float* loss_h)
 {
 
   float total_time = 0.f;
@@ -304,11 +304,33 @@ void train_loop(NeuralNetwork *nn, Outputs *op, float* train_x, float* train_y, 
       backward(nn, op, labels);
       optimizer_step(nn, op, input);
 
-      cudaMemcpy(output_host, op->a3, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
-      cudaMemcpy(loss_host, op->losses, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
-      cudaDeviceSynchronize();
+      
+      cudaMemcpy(out_h, op->a3, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+      cudaMemcpy(loss_h, op->losses, BATCH_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
 
-      //calc acc
+      for (int i = 0; i < BATCH_SIZE; i++)
+      {
+        float max_1 = 0.f;
+        float max_2 = 0.f;
+        int i1 = 0;
+        int i2 = 0;
+        for (int j = 0; j<LABELS_SIZE; j++)
+        {
+          if (out_h[i*LABELS_SIZE + j] > max_1)
+          {
+            max_1 = out_h[i*LABELS_SIZE + j];
+            i1 = j;
+          }
+          
+          if (train_y[batch*BATCH_SIZE*LABELS_SIZE + i*LABELS_SIZE + j] > max_2)
+          {
+            max_2 = train_y[batch*BATCH_SIZE*LABELS_SIZE + i*LABELS_SIZE + j];
+            i2 = j;
+          }
+        }
+        correct += (i1 == i2);
+        cum_loss += loss_h[i];
+      }
     }
   }
 }
