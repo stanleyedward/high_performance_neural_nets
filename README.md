@@ -7,6 +7,7 @@ nn
 
 - read mnist dataset
 - pin mem
+- create make file
 - softmax optim
 - matmul optim
 - streams
