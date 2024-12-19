@@ -390,7 +390,7 @@ int main(int argc, char** argv)
   float total_time = 0.f;
   for(int epoch = 0; epoch<EPOCHS; epoch++)
   {
-    float cum_loss = 0.f;
+    float total_loss = 0.f;
     int correct = 0;
     int total = 0;
     auto start_time = std::chrono::system_clock::now();
@@ -434,7 +434,7 @@ int main(int argc, char** argv)
           }
         }
         correct += (i1 == i2);
-        cum_loss += loss_h[i];
+        total_loss += loss_h[i];
       }
 
       backward_pass(&net, input, labels, x1, a1, x2, a2, x3, a3, loss);
@@ -490,7 +490,7 @@ int main(int argc, char** argv)
     float epoch_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time).count();
     total_time += epoch_time;
     std::cout<<"epoch "<<epoch<<" "<<epoch_time<<
-      "ms | total loss "<<cum_loss<<" | accuracy "<<(float)correct/total<<
+      "ms | total loss "<<total_loss<<" | accuracy "<<(float)correct/total<<
       " | val loss "<<val_loss<<" | val accuracy "<<(float)val_correct/val_total<<std::endl;
   }
   std::cout<<"finished training, total time = "<<total_time<<" ms"<<std::endl;
