@@ -9,6 +9,7 @@ nn
 - pin mem
 - softmax optim
 - matmul optim
+- streams
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh
