@@ -12,7 +12,8 @@ nn
 - matmul optim
   - coalesed accesses
   - shared mem blocking
-
+  - tiling?
+  - cublas test
 - streams
 
 https://github.com/NVIDIA/cuda-samples.git
