@@ -10,6 +10,9 @@ nn
 - create make file
 - softmax optim
 - matmul optim
+  - coalesed accesses
+  - shared mem blocking
+
 - streams
 
 https://github.com/NVIDIA/cuda-samples.git
