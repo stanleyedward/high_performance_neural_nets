@@ -15,6 +15,8 @@ nn
   - tiling?
   - cublas test
 - streams
+   - data loading
+   - kernek luanches
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh
