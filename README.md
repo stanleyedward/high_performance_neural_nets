@@ -6,6 +6,7 @@ nn
 ### TODO
 
 - [x] read mnist dataset
+- [ ] modularize code 
 - [ ] pin mem
 - [ ] create make file
 - [ ] softmax optim
