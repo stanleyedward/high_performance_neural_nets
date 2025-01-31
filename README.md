@@ -5,12 +5,12 @@ nn
 
 ### TODO
 
-- read mnist dataset
-- pin mem
-- create make file
-- softmax optim
-- matmul optim
-- streams
+- [x] read mnist dataset
+- [ ] pin mem
+- [ ] create make file
+- [ ] softmax optim
+- [ ] matmul optim
+- [ ] streams
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh
