@@ -11,7 +11,15 @@ nn
 - [ ] create make file
 - [ ] softmax optim
 - [ ] matmul optim
+    
+  -  coalesed accesses
+  -  shared mem blocking
+  -  tiling?
+  -  cublas test
+
 - [ ] streams
+  - data loading
+  - kernel launches
 
 https://github.com/NVIDIA/cuda-samples.git
 ```sh
