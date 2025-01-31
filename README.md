@@ -63,3 +63,8 @@ Device 0: "NVIDIA GeForce RTX 4050 Laptop GPU"
 deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 12.7, CUDA Runtime Version = 12.6, NumDevs = 1
 Result = PASS
 ```
+
+
+### References
+
+https://siboehm.com/articles/22/CUDA-MMM
