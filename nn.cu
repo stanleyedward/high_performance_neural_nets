@@ -17,7 +17,7 @@
 #define HIDDEN_LAYER_2 256
 #define OUTPUT_LAYER 10
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 32
 #define BATCH_SIZE 32
 #define EPOCHS 10
 #define LR 0.003
@@ -79,6 +79,20 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float *input, f
     }
   }
 }
+
+// __global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
+// {
+//   const uint column = blockIdx.x * blockDim.x + (threadIdx.x / BLOCK_SIZE);
+//   const uint row = blockIdx.y * blockDim.x + (threadIdx.x  % BLOCK_SIZE);
+//   if (row < batch_size && column < out_w)
+//   {
+//     output[row * out_w + column] = biases[column];
+//     for (int i = 0; i < n; i++)
+//     {
+//       output[row * out_w + column] += weights[i * out_w + column] * input[row * n + i];
+//     }
+//   }
+// }
 
 __global__ void linear_backward(int batch_size, int n, int out_w, float *weights, float *biases, float *d_l, float *out_d_l)
 {
@@ -257,31 +271,59 @@ void free_network(NeuralNetwork *net)
   cudaFree(net->grad_layer3);
 }
 
+// void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
+// {
+//   dim3 numBlocks, numThreadsPerBlock;
+
+//   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
+//   CUDA_CHECK(cudaPeekAtLastError());
+
+//   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
+//   CUDA_CHECK(cudaPeekAtLastError());
+
+//   numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   CUDA_CHECK(cudaDeviceSynchronize());
+// }
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
 {
   dim3 numBlocks, numThreadsPerBlock;
 
   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
+  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
   CUDA_CHECK(cudaPeekAtLastError());
+  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
   CUDA_CHECK(cudaPeekAtLastError());
 
   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
   CUDA_CHECK(cudaPeekAtLastError());
+  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
   CUDA_CHECK(cudaPeekAtLastError());
 
   numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
   CUDA_CHECK(cudaPeekAtLastError());
+  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
   CUDA_CHECK(cudaPeekAtLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
-
 void backward_pass(NeuralNetwork *net, float *input, float *labels, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3, float *loss)
 {
   dim3 numBlocks, numThreadsPerBlock;
