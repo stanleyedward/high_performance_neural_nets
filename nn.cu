@@ -67,19 +67,19 @@ typedef struct
   float *grad_layer3;
 } NeuralNetwork;
 
-// __global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
-// {
-//   const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-//   const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-//   if (row < batch_size && column < out_w)
-//   {
-//     output[row * out_w + column] = biases[column];
-//     for (int i = 0; i < n; i++)
-//     {
-//       output[row * out_w + column] += weights[i * out_w + column] * input[row * n + i];
-//     }
-//   }
-// }
+__global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
+{
+  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
+  if (row < batch_size && column < out_w)
+  {
+    output[row * out_w + column] = biases[column];
+    for (int i = 0; i < n; i++)
+    {
+      output[row * out_w + column] += weights[i * out_w + column] * input[row * n + i];
+    }
+  }
+}
 
 // __global__ void linear_forward(int batch_size, int n, int out_w, 
 //                                float *input, float *weights, float *biases, float *output) 
