@@ -368,60 +368,60 @@ void free_network(NeuralNetwork *net)
   cudaFree(net->grad_layer3);
 }
 
-// void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
-// {
-//   dim3 numBlocks, numThreadsPerBlock;
-
-//   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-//   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
-//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
-//   CUDA_CHECK(cudaPeekAtLastError());
-//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
-//   CUDA_CHECK(cudaPeekAtLastError());
-
-//   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
-//   CUDA_CHECK(cudaPeekAtLastError());
-//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
-//   CUDA_CHECK(cudaPeekAtLastError());
-
-//   numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
-//   CUDA_CHECK(cudaPeekAtLastError());
-//   softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
-//   CUDA_CHECK(cudaPeekAtLastError());
-//   CUDA_CHECK(cudaDeviceSynchronize());
-// }
-
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
 {
   dim3 numBlocks, numThreadsPerBlock;
 
   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
+  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
   CUDA_CHECK(cudaPeekAtLastError());
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
   CUDA_CHECK(cudaPeekAtLastError());
 
   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
   CUDA_CHECK(cudaPeekAtLastError());
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
   CUDA_CHECK(cudaPeekAtLastError());
 
   numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
   CUDA_CHECK(cudaPeekAtLastError());
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
   CUDA_CHECK(cudaPeekAtLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
+
+// void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
+// {
+//   dim3 numBlocks, numThreadsPerBlock;
+
+//   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
+//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
+//   CUDA_CHECK(cudaPeekAtLastError());
+
+//   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
+//   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
+//   CUDA_CHECK(cudaPeekAtLastError());
+
+//   numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
+//   numThreadsPerBlock = dim3(BLOCK_SIZE* BLOCK_SIZE, 1, 1);
+//   linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
+//   softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
+//   CUDA_CHECK(cudaPeekAtLastError());
+//   CUDA_CHECK(cudaDeviceSynchronize());
+// }
 
 void backward_pass(NeuralNetwork *net, float *input, float *labels, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3, float *loss)
 {
@@ -468,7 +468,7 @@ void read_mnist(const std::string &filename, int length, float *x, float *y)
   {
     throw std::runtime_error("Cannot open file: " + filename);
   }
-  // Skip the header row
+  //skip the header row
   std::string header;
   std::getline(fin, header);
 
@@ -481,18 +481,18 @@ void read_mnist(const std::string &filename, int length, float *x, float *y)
     }
     std::istringstream line_stream(row);
     std::string value;
-    // Parse label
+    //parse label
     if (!std::getline(line_stream, value, ','))
     {
       throw std::runtime_error("Cannot read label");
     }
     int label = std::stoi(value);
-    // Initialize one-hot encoded label
+    //init one-hot encoded label
     for (int j = 0; j < labels; j++)
     {
       y[labels * i + j] = (j == label) ? 1.0f : 0.0f;
     }
-    // Parse input features
+    //parse input features
     for (int j = 0; j < INPUT_SIZE; j++)
     {
       if (!std::getline(line_stream, value, ','))
