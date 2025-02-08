@@ -5,31 +5,37 @@
 #define N 1024
 #define THREADS_PER_BLOCK 1024
 
-__global__ void sigmoid_kernel(float* input, float* output) {
+__global__ void act1(float *input, float *output)
+{
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    if (row < N && col < N) {
+    if (row < N && col < N)
+    {
         output[row * N + col] = 1.0f / (1.0f + expf(-input[row * N + col]));
     }
 }
 
-__global__ void relu_kernel(float* input, float* output, int size) {
+__global__ void act2(float *input, float *output, int size)
+{
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < size) {
+    if (idx < size)
+    {
         output[idx] = fmaxf(0.0f, input[idx]);
     }
 }
 
-int main() {
+int main()
+{
     int size = N * N;
     size_t bytes = size * sizeof(float);
 
-    float* h_input = (float*)malloc(bytes);
-    float* h_sigmoid = (float*)malloc(bytes);
-    float* h_relu = (float*)malloc(bytes);
+    float *h_input = (float *)malloc(bytes);
+    float *h_sigmoid = (float *)malloc(bytes);
+    float *h_relu = (float *)malloc(bytes);
 
     // init input with random values between -10 to 10
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         h_input[i] = (float)rand() / RAND_MAX * 20.0f - 10.0f;
     }
 
@@ -49,19 +55,19 @@ int main() {
     float milliseconds;
 
     cudaEventRecord(start);
-    sigmoid_kernel<<<numBlocks, numThreadsPerBlock>>>(d_input, d_sigmoid);
+    act1<<<numBlocks, numThreadsPerBlock>>>(d_input, d_sigmoid);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Sigmoid execution time: %.4f ms\n", milliseconds);
 
     // Check for kernel errors
-    
+
     int blockSize = THREADS_PER_BLOCK;
     int gridSize = (size + blockSize - 1) / blockSize;
 
     cudaEventRecord(start);
-    relu_kernel<<<gridSize, blockSize>>>(d_input, d_relu, size);
+    act2<<<gridSize, blockSize>>>(d_input, d_relu, size);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);

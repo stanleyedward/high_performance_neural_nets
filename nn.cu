@@ -81,26 +81,6 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float *input, f
   }
 }
 
-// __global__ void linear_forward(int batch_size, int n, int out_w, 
-//                                float *input, float *weights, float *biases, float *output) 
-// {
-//   const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-//   const uint row = blockIdx.y;  // Each block processes one row
-
-//   if (column < out_w && row < batch_size) 
-//   {
-//     float sum = biases[column]; // Load bias once per thread
-
-//     // Optimized coalesced memory access pattern for weights
-//     for (int i = 0; i < n; i++) 
-//     {
-//       sum += weights[column * n + i] * input[row * n + i];  // Coalesced access
-//     }
-
-//     output[row * out_w + column] = sum; // Coalesced write
-//   }
-// }
-
 // __global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
 // {
 //   // simon oz
@@ -139,54 +119,6 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float *input, f
 
 //   if (row < batch_size && col < out_w)
 //   {
-//     output[row * out_w + col] = biases[col] + sum;
-//   }
-// }
-// __global__ void linear_forward(int batch_size, int n, int out_w,
-//                                float *input, float *weights, float *biases,
-//                                float *output) {
-//   //siboehm
-//   // Use 2D thread indexing instead of flattening threadIdx.x.
-//   int tx = threadIdx.x;
-//   int ty = threadIdx.y;
-//   int row = blockIdx.y * BLOCK_SIZE + ty;
-//   int col = blockIdx.x * BLOCK_SIZE + tx;
-
-//   float sum = 0.0f;
-
-//   // Allocate 2D shared memory tiles.
-//   __shared__ float input_tile[BLOCK_SIZE][BLOCK_SIZE];
-//   __shared__ float weights_tile[BLOCK_SIZE][BLOCK_SIZE];
-
-//   // Loop over tiles along the K dimension.
-//   for (int tile = 0; tile < (n + BLOCK_SIZE - 1) / BLOCK_SIZE; tile++) {
-//     // Load a tile of the input matrix.
-//     int tiled_col = tile * BLOCK_SIZE + tx;
-//     if (row < batch_size && tiled_col < n) {
-//       input_tile[ty][tx] = input[row * n + tiled_col];
-//     } else {
-//       input_tile[ty][tx] = 0.0f;
-//     }
-
-//     // Load a tile of the weights matrix.
-//     int tiled_row = tile * BLOCK_SIZE + ty;
-//     if (tiled_row < n && col < out_w) {
-//       weights_tile[ty][tx] = weights[tiled_row * out_w + col];
-//     } else {
-//       weights_tile[ty][tx] = 0.0f;
-//     }
-
-//     __syncthreads();
-
-//     // Compute partial dot product for this tile.
-//     for (int k = 0; k < BLOCK_SIZE; k++) {
-//       sum += input_tile[ty][k] * weights_tile[k][tx];
-//     }
-//     __syncthreads();
-//   }
-
-//   // Write the result adding the bias.
-//   if (row < batch_size && col < out_w) {
 //     output[row * out_w + col] = biases[col] + sum;
 //   }
 // }
@@ -468,7 +400,7 @@ void read_mnist(const std::string &filename, int length, float *x, float *y)
   {
     throw std::runtime_error("Cannot open file: " + filename);
   }
-  //skip the header row
+  // skip the header row
   std::string header;
   std::getline(fin, header);
 
@@ -481,18 +413,18 @@ void read_mnist(const std::string &filename, int length, float *x, float *y)
     }
     std::istringstream line_stream(row);
     std::string value;
-    //parse label
+    // parse label
     if (!std::getline(line_stream, value, ','))
     {
       throw std::runtime_error("Cannot read label");
     }
     int label = std::stoi(value);
-    //init one-hot encoded label
+    // init one-hot encoded label
     for (int j = 0; j < labels; j++)
     {
       y[labels * i + j] = (j == label) ? 1.0f : 0.0f;
     }
-    //parse input features
+    // parse input features
     for (int j = 0; j < INPUT_SIZE; j++)
     {
       if (!std::getline(line_stream, value, ','))
