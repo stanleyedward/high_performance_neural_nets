@@ -7,9 +7,9 @@
 // Matrix C: MxN
 // C = A * B
 
-#define M 256
-#define N 32
-#define K 784
+#define M 1024
+#define N 1024
+#define K 1024
 #define BLOCK_SIZE 16
 
 __global__ void mm1(float *A, float *B, float *C)
@@ -57,7 +57,7 @@ __global__ void mm3(float *A, float *B, float *C) {
     int col = bx * BLOCK_SIZE + tx;
     float sum = 0.0f;
 
-    for (int m = 0; m < K / BLOCK_SIZE; ++m) {
+    for (int m = 0; m < N / BLOCK_SIZE; ++m) {
         sA[ty][tx] = A[row * N + (m * BLOCK_SIZE + tx)];
         sB[ty][tx] = B[(m * BLOCK_SIZE + ty) * N + col];
         __syncthreads();
@@ -228,7 +228,6 @@ int main()
     free(h_B);
     free(h_C1);
     free(h_C2);
-    free(h_C_cpu);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
