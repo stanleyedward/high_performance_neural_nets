@@ -57,7 +57,7 @@ __global__ void mm3(float *A, float *B, float *C) {
     int col = bx * BLOCK_SIZE + tx;
     float sum = 0.0f;
 
-    for (int m = 0; m < N/BLOCK_SIZE; ++m) {
+    for (int m = 0; m < K / BLOCK_SIZE; ++m) {
         sA[ty][tx] = A[row * N + (m * BLOCK_SIZE + tx)];
         sB[ty][tx] = B[(m * BLOCK_SIZE + ty) * N + col];
         __syncthreads();
@@ -117,8 +117,21 @@ __global__ void mm4(float *A, float *B, float *C){
   C[threadRow * N + threadCol] = tmp;
 }
 
+void matrix_multiply_cpu(float *A, float *B, float *C, int m, int n, int k) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            float sum = 0.0f;
+            for (int l = 0; l < k; l++) {
+                sum += A[i * k + l] * B[l * n + j];
+            }
+            C[i * n + j] = sum;
+        }
+    }
+}
+
 int main()
-{   
+{ 
+
   printf("Matrix Multiplication\n");
   printf("Matrix A: %d x %d\n", M, K);
   printf("Matrix B: %d x %d\n", K, N);
@@ -133,11 +146,15 @@ int main()
     float *h_B = (float *)malloc(bytes_B);
     float *h_C1 = (float *)malloc(bytes_C);
     float *h_C2 = (float *)malloc(bytes_C);
+    float *h_C_cpu = (float*)malloc(bytes_C);
 
-    for (int i = 0; i < N * N; ++i)
+    for (int i = 0; i < M * K; ++i)
     {
-        h_A[i] = rand() / (float)RAND_MAX;
-        h_B[i] = rand() / (float)RAND_MAX;
+      h_A[i] = rand() / (float)RAND_MAX;
+    }
+    for (int i = 0; i < K * N; ++i)
+    {
+      h_B[i] = rand() / (float)RAND_MAX;
     }
 
     float *d_A, *d_B, *d_C;
@@ -148,7 +165,7 @@ int main()
     cudaMemcpy(d_A, h_A, bytes_A, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, bytes_B, cudaMemcpyHostToDevice);
 
-    dim3 blocks(M / BLOCK_SIZE, N / BLOCK_SIZE);
+    dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1)/ BLOCK_SIZE);
     //2D blocks
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
     //1D blocks
@@ -160,17 +177,19 @@ int main()
     float milliseconds;
 
     cudaEventRecord(start);
-    mm1<<<blocks, threads>>>(d_A, d_B, d_C);
+    mm3<<<blocks, threads>>>(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
+
+    cudaMemcpy(h_C1, d_C, bytes_C, cudaMemcpyDeviceToHost);
 
     double gflops_kernel1 = (2.0 * M * N * K) / (milliseconds * 1e6);
     printf("Matrix Multiplication 1:\n");
     printf("Time: %.4f ms\n", milliseconds);
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
-    dim3 blocks2(M / BLOCK_SIZE, N / BLOCK_SIZE);
+    dim3 blocks2((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
     //1D blocks
     dim3 threads2(BLOCK_SIZE* BLOCK_SIZE);
 
@@ -180,6 +199,7 @@ int main()
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
 
+    cudaMemcpy(h_C2, d_C, bytes_C, cudaMemcpyDeviceToHost);
     double gflops_kernel2 = (2.0 * M * N * K) / (milliseconds * 1e6);
     printf("Matrix Multiplication 2:\n");
     printf("Time: %.4f ms\n", milliseconds);
@@ -192,6 +212,7 @@ int main()
     free(h_B);
     free(h_C1);
     free(h_C2);
+    free(h_C_cpu);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
