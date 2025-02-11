@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
-// Matrix A: MxK
+// Matrix A: MxK 
 // Matrix B: KxN
 // Matrix C: MxN
 // C = A * B
 
-#define M 1024
-#define N 1024
-#define K 1024
+#define M 256
+#define N 32
+#define K 784
 #define BLOCK_SIZE 16
 
 __global__ void mm1(float *A, float *B, float *C)
@@ -45,6 +45,7 @@ if (x < M && y < N) {
 }
 
 __global__ void mm3(float *A, float *B, float *C) {
+  // M, N, K have to be multiples of BLOCK_SIZE
   // shared memory 
   // 2D blocks
     __shared__ float sA[BLOCK_SIZE][BLOCK_SIZE];
@@ -73,6 +74,7 @@ __global__ void mm3(float *A, float *B, float *C) {
 
 __global__ void mm4(float *A, float *B, float *C){
   // siboehm 
+  // M, N, K have to be multiples of BLOCK_SIZE
   // shared memory 
   // 1D blocks
   const uint cRow = blockIdx.x;
@@ -129,6 +131,29 @@ void matrix_multiply_cpu(float *A, float *B, float *C, int m, int n, int k) {
     }
 }
 
+void tiled_matrix_multiply_cpu(float *A, float *B, float *C){
+  // Tiling for matrices:
+  // A: M x K, B: K x N, C: M x N
+  for (unsigned int rowTile = 0; rowTile < M / BLOCK_SIZE; ++rowTile){
+    for (unsigned int colTile = 0; colTile < N / BLOCK_SIZE; ++colTile){
+      for (unsigned int iTile = 0; iTile < K / BLOCK_SIZE; ++iTile){
+        for (unsigned int row = rowTile * BLOCK_SIZE; row < (rowTile + 1) * BLOCK_SIZE; ++row){
+          for (unsigned int col = colTile * BLOCK_SIZE; col < (colTile + 1) * BLOCK_SIZE; ++col){
+            float sum = 0.0f;
+            for (unsigned int i = iTile * BLOCK_SIZE; i < (iTile + 1) * BLOCK_SIZE; ++i){
+              sum += A[row * K + i] * B[i * N + col];
+            }
+            if(iTile == 0)
+              C[row * N + col] = sum;
+            else
+              C[row * N + col] += sum;
+          }
+        }
+      }
+    }
+  }
+}
+
 int main()
 { 
 
@@ -167,9 +192,9 @@ int main()
 
     dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1)/ BLOCK_SIZE);
     //2D blocks
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    // dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
     //1D blocks
-    // dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -177,7 +202,7 @@ int main()
     float milliseconds;
 
     cudaEventRecord(start);
-    mm3<<<blocks, threads>>>(d_A, d_B, d_C);
+    mm2<<<blocks, threads>>>(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -207,6 +232,7 @@ int main()
 
     // Compute CPU reference
     matrix_multiply_cpu(h_A, h_B, h_C_cpu, M, N, K);
+    // tiled_matrix_multiply_cpu(h_A, h_B, h_C_cpu);
     
     // Verify results
     float max_error1 = 0.0f;
@@ -228,6 +254,7 @@ int main()
     free(h_B);
     free(h_C1);
     free(h_C2);
+    free(h_C_cpu);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
