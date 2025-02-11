@@ -13,7 +13,9 @@
 #define BLOCK_SIZE 32
 
 __global__ void mm1(float *A, float *B, float *C)
-{
+{ 
+  // naive 
+  // 2D blocks
   const uint x = blockIdx.x * blockDim.x + threadIdx.x;
   const uint y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -28,6 +30,8 @@ __global__ void mm1(float *A, float *B, float *C)
 }
 __global__ void mm2(float *A, float *B, float *C)
 {
+// global memory coal.
+// 1D blocks
 const int x = blockIdx.x * BLOCK_SIZE + (threadIdx.x / BLOCK_SIZE);
 const int y = blockIdx.y * BLOCK_SIZE + (threadIdx.x % BLOCK_SIZE);
 
@@ -41,7 +45,8 @@ if (x < M && y < N) {
 }
 
 __global__ void mm3(float *A, float *B, float *C) {
-  // simple shared memeory impl assumes square matrix
+  // shared memory 
+  // 2D blocks
     __shared__ float sA[BLOCK_SIZE][BLOCK_SIZE];
     __shared__ float sB[BLOCK_SIZE][BLOCK_SIZE];
 
@@ -67,8 +72,9 @@ __global__ void mm3(float *A, float *B, float *C) {
 }
 
 __global__ void mm4(float *A, float *B, float *C){
-  //siboehm shared memory
-// the output block that we want to compute in this threadblock
+  // siboehm 
+  // shared memory 
+  // 1D blocks
   const uint cRow = blockIdx.x;
   const uint cCol = blockIdx.y;
 
@@ -139,6 +145,8 @@ int main()
     dim3 blocks(M / BLOCK_SIZE, N / BLOCK_SIZE);
     //2D blocks
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    //1D blocks
+    // dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -146,7 +154,7 @@ int main()
     float milliseconds;
 
     cudaEventRecord(start);
-    mm1<<<blocks, threads>>>(d_A, d_B, d_C);
+    mm3<<<blocks, threads>>>(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
