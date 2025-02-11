@@ -205,6 +205,22 @@ int main()
     printf("Time: %.4f ms\n", milliseconds);
     printf("Performance: %.2f GFLOPS\n", gflops_kernel2);
 
+    // Compute CPU reference
+    matrix_multiply_cpu(h_A, h_B, h_C_cpu, M, N, K);
+    
+    // Verify results
+    float max_error1 = 0.0f;
+    float max_error2 = 0.0f;
+    for (int i = 0; i < M * N; i++) {
+        max_error1 = fmax(max_error1, fabs(h_C1[i] - h_C_cpu[i]));
+        max_error2 = fmax(max_error2, fabs(h_C2[i] - h_C_cpu[i]));
+    }
+    
+    printf("\nValidation Results:\n");
+    printf("Kernel 1 max error: %e\n", max_error1);
+    printf("Kernel 2 max error: %e\n", max_error2);
+
+
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
