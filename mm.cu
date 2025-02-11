@@ -2,26 +2,46 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
+// Matrix A: MxK
+// Matrix B: KxN
+// Matrix C: MxN
+// C = A * B
+
+#define M 1024
 #define N 1024
+#define K 1024
 #define BLOCK_SIZE 32
 
 __global__ void mm1(float *A, float *B, float *C)
 {
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint x = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (row < N && col < N)
-    {
-        float sum = 0.0f;
-        for (int k = 0; k < N; k++)
-        {
-            sum += A[row * N + k] * B[k * N + col];
-        }
-        C[row * N + col] = sum;
+  // `if` condition is necessary for when M or N aren't multiples of 32.
+  if (x < M && y < N) {
+    float tmp = 0.0;
+    for (int i = 0; i < K; ++i) {
+      tmp += A[x * K + i] * B[i * N + y];
     }
+    C[x * N + y] = tmp;
+  }
 }
 __global__ void mm2(float *A, float *B, float *C)
 {
+const int x = blockIdx.x * BLOCK_SIZE + (threadIdx.x / BLOCK_SIZE);
+const int y = blockIdx.y * BLOCK_SIZE + (threadIdx.x % BLOCK_SIZE);
+
+if (x < M && y < N) {
+  float tmp = 0.0;
+  for (int i = 0; i < K; ++i) {
+    tmp += A[x * K + i] * B[i * N + y];
+  }
+  C[x * N + y] = tmp;
+}
+}
+
+__global__ void mm3(float *A, float *B, float *C) {
+  // simple shared memeory impl assumes square matrix
     __shared__ float sA[BLOCK_SIZE][BLOCK_SIZE];
     __shared__ float sB[BLOCK_SIZE][BLOCK_SIZE];
 
@@ -32,53 +52,75 @@ __global__ void mm2(float *A, float *B, float *C)
     int col = bx * BLOCK_SIZE + tx;
     float sum = 0.0f;
 
-    for (int m = 0; m < N / BLOCK_SIZE; ++m)
-    {
+    for (int m = 0; m < N/BLOCK_SIZE; ++m) {
         sA[ty][tx] = A[row * N + (m * BLOCK_SIZE + tx)];
         sB[ty][tx] = B[(m * BLOCK_SIZE + ty) * N + col];
         __syncthreads();
 
-        for (int k = 0; k < BLOCK_SIZE; ++k)
-        {
+        for (int k = 0; k < BLOCK_SIZE; ++k) {
             sum += sA[ty][k] * sB[k][tx];
         }
         __syncthreads();
     }
+
     C[row * N + col] = sum;
 }
-// __global__ void mm2(float *A, float *B, float *C) {
-//     // __shared__ float sA[BLOCK_SIZE][BLOCK_SIZE];
-//     // __shared__ float sB[BLOCK_SIZE][BLOCK_SIZE];
 
-//     // int bx = blockIdx.x, by = blockIdx.y;
-//     // int tx = threadIdx.x, ty = threadIdx.y;
+__global__ void mm4(float *A, float *B, float *C){
+  //siboehm shared memory
+// the output block that we want to compute in this threadblock
+  const uint cRow = blockIdx.x;
+  const uint cCol = blockIdx.y;
 
-//     // int row = by * BLOCK_SIZE + ty;
-//     // int col = bx * BLOCK_SIZE + tx;
-//     // float sum = 0.0f;
+  // allocate buffer for current block in fast shared mem
+  // shared mem is shared between all threads in a block
+  __shared__ float As[BLOCK_SIZE * BLOCK_SIZE];
+  __shared__ float Bs[BLOCK_SIZE * BLOCK_SIZE];
 
-//     // for (int m = 0; m < N/BLOCK_SIZE; ++m) {
-//     //     sA[ty][tx] = A[row * N + (m * BLOCK_SIZE + tx)];
-//     //     sB[ty][tx] = B[(m * BLOCK_SIZE + ty) * N + col];
-//     //     __syncthreads();
+  // the inner row & col that we're accessing in this thread
+  const uint threadCol = threadIdx.x % BLOCK_SIZE;
+  const uint threadRow = threadIdx.x / BLOCK_SIZE;
 
-//     //     for (int k = 0; k < BLOCK_SIZE; ++k) {
-//     //         sum += sA[ty][k] * sB[k][tx];
-//     //     }
-//     //     __syncthreads();
-//     // }
+  // advance pointers to the starting positions
+  A += cRow * BLOCK_SIZE * K;                    // row=cRow, col=0
+  B += cCol * BLOCK_SIZE;                        // row=0, col=cCol
+  C += cRow * BLOCK_SIZE * N + cCol * BLOCK_SIZE; // row=cRow, col=cCol
 
-//     // C[row * N + col] = sum;
-// }
+  float tmp = 0.0;
+  for (int bkIdx = 0; bkIdx < K; bkIdx += BLOCK_SIZE) {
+    // Have each thread load one of the elements in A & B
+    // Make the threadCol (=threadIdx.x) the consecutive index
+    // to allow global memory access coalescing
+    As[threadRow * BLOCK_SIZE + threadCol] = A[threadRow * K + threadCol];
+    Bs[threadRow * BLOCK_SIZE + threadCol] = B[threadRow * N + threadCol];
+
+    // block threads in this block until cache is fully populated
+    __syncthreads();
+    A += BLOCK_SIZE;
+    B += BLOCK_SIZE * N;
+
+    // execute the dotproduct on the currently cached block
+    for (int dotIdx = 0; dotIdx < BLOCK_SIZE; ++dotIdx) {
+      tmp += As[threadRow * BLOCK_SIZE + dotIdx] *
+             Bs[dotIdx * BLOCK_SIZE + threadCol];
+    }
+    // need to sync again at the end, to avoid faster threads
+    // fetching the next block into the cache before slower threads are done
+    __syncthreads();
+  }
+  C[threadRow * N + threadCol] = tmp;
+}
 
 int main()
-{
-    size_t bytes = N * N * sizeof(float);
+{    
+    size_t bytes_A = M * K * sizeof(float);
+    size_t bytes_B = K * N * sizeof(float);
+    size_t bytes_C = M * N * sizeof(float);
 
-    float *h_A = (float *)malloc(bytes);
-    float *h_B = (float *)malloc(bytes);
-    float *h_C1 = (float *)malloc(bytes);
-    float *h_C2 = (float *)malloc(bytes);
+    float *h_A = (float *)malloc(bytes_A);
+    float *h_B = (float *)malloc(bytes_B);
+    float *h_C1 = (float *)malloc(bytes_C);
+    float *h_C2 = (float *)malloc(bytes_C);
 
     for (int i = 0; i < N * N; ++i)
     {
@@ -87,14 +129,15 @@ int main()
     }
 
     float *d_A, *d_B, *d_C;
-    cudaMalloc(&d_A, bytes);
-    cudaMalloc(&d_B, bytes);
-    cudaMalloc(&d_C, bytes);
+    cudaMalloc(&d_A, bytes_A);
+    cudaMalloc(&d_B, bytes_B);
+    cudaMalloc(&d_C, bytes_C);
 
-    cudaMemcpy(d_A, h_A, bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, h_B, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_A, h_A, bytes_A, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, h_B, bytes_B, cudaMemcpyHostToDevice);
 
-    dim3 blocks(N / BLOCK_SIZE, N / BLOCK_SIZE);
+    dim3 blocks(M / BLOCK_SIZE, N / BLOCK_SIZE);
+    //2D blocks
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
     cudaEvent_t start, stop;
@@ -108,21 +151,25 @@ int main()
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
 
-    // each element needs 2*N ops (N multiplications and N additions)
-    double gflops_naive = (2.0 * N * N * N) / (milliseconds * 1e6);
+    double gflops_kernel1 = (2.0 * M * N * K) / (milliseconds * 1e6);
     printf("Matrix Multiplication 1:\n");
     printf("Time: %.4f ms\n", milliseconds);
-    printf("Performance: %.2f GFLOPS\n\n", gflops_naive);
+    printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
+    
+    dim3 blocks2(M / BLOCK_SIZE, N / BLOCK_SIZE);
+    //1D blocks
+    dim3 threads2(BLOCK_SIZE* BLOCK_SIZE);
 
     cudaEventRecord(start);
-    mm2<<<blocks, threads>>>(d_A, d_B, d_C);
+    mm4<<<blocks2, threads2>>>(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
-    double gflops_shared = (2.0 * N * N * N) / (milliseconds * 1e6);
+
+    double gflops_kernel2 = (2.0 * M * N * K) / (milliseconds * 1e6);
     printf("Matrix Multiplication 2:\n");
     printf("Time: %.4f ms\n", milliseconds);
-    printf("Performance: %.2f GFLOPS\n", gflops_shared);
+    printf("Performance: %.2f GFLOPS\n", gflops_kernel2);
 
     cudaFree(d_A);
     cudaFree(d_B);
