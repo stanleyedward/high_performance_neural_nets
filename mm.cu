@@ -7,10 +7,10 @@
 // Matrix C: MxN
 // C = A * B
 
-#define M 1024
-#define N 1024
-#define K 1024
-#define BLOCK_SIZE 32
+#define M 256
+#define N 32
+#define K 784
+#define BLOCK_SIZE 16
 
 __global__ void mm1(float *A, float *B, float *C)
 { 
@@ -118,7 +118,13 @@ __global__ void mm4(float *A, float *B, float *C){
 }
 
 int main()
-{    
+{   
+  printf("Matrix Multiplication\n");
+  printf("Matrix A: %d x %d\n", M, K);
+  printf("Matrix B: %d x %d\n", K, N);
+  printf("Matrix C: %d x %d\n", M, N);
+  printf("Block size: %d x %d\n\n", BLOCK_SIZE, BLOCK_SIZE);
+
     size_t bytes_A = M * K * sizeof(float);
     size_t bytes_B = K * N * sizeof(float);
     size_t bytes_C = M * N * sizeof(float);
@@ -154,7 +160,7 @@ int main()
     float milliseconds;
 
     cudaEventRecord(start);
-    mm3<<<blocks, threads>>>(d_A, d_B, d_C);
+    mm1<<<blocks, threads>>>(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);

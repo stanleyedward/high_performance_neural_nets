@@ -10,15 +10,15 @@
 #define TEST_LENGTH 10000
 #define TRAIN_LENGTH 60000
 
-#define INPUT_SIZE 784
+#define INPUT_SIZE 784 //K
 #define LABELS_SIZE 10
 
-#define HIDDEN_LAYER_1 256
+#define HIDDEN_LAYER_1 256 //M
 #define HIDDEN_LAYER_2 256
 #define OUTPUT_LAYER 10
 
 #define BLOCK_SIZE 16
-#define BATCH_SIZE 32
+#define BATCH_SIZE 32 //N
 #define TILE_WIDTH 32
 #define EPOCHS 10
 #define LR 0.003
@@ -252,10 +252,10 @@ void initLayer(float *weights, float *biases, int w, int h)
 
 void init_outputs(float **input, float **labels, float **x1, float **a1, float **x2, float **a2, float **x3, float **a3, float **loss)
 {
-  CUDA_CHECK(cudaMalloc((void **)input, INPUT_SIZE * BATCH_SIZE * sizeof(float)));
+  CUDA_CHECK(cudaMalloc((void **)input, INPUT_SIZE * BATCH_SIZE * sizeof(float))); // K*N
   CUDA_CHECK(cudaMalloc((void **)labels, LABELS_SIZE * BATCH_SIZE * sizeof(float)));
 
-  CUDA_CHECK(cudaMalloc((void **)x1, HIDDEN_LAYER_1 * BATCH_SIZE * sizeof(float)));
+  CUDA_CHECK(cudaMalloc((void **)x1, HIDDEN_LAYER_1 * BATCH_SIZE * sizeof(float))); // M*N
   CUDA_CHECK(cudaMalloc((void **)a1, HIDDEN_LAYER_1 * BATCH_SIZE * sizeof(float)));
 
   CUDA_CHECK(cudaMalloc((void **)x2, HIDDEN_LAYER_2 * BATCH_SIZE * sizeof(float)));
@@ -269,7 +269,7 @@ void init_outputs(float **input, float **labels, float **x1, float **a1, float *
 
 void initialize_network(NeuralNetwork *net) // change
 {
-  CUDA_CHECK(cudaMalloc((void **)&net->weights1, HIDDEN_LAYER_1 * INPUT_SIZE * sizeof(float)));
+  CUDA_CHECK(cudaMalloc((void **)&net->weights1, HIDDEN_LAYER_1 * INPUT_SIZE * sizeof(float))); // M*K
   CUDA_CHECK(cudaMalloc((void **)&net->biases1, HIDDEN_LAYER_1 * sizeof(float)));
   CUDA_CHECK(cudaMalloc((void **)&net->grad_layer1, HIDDEN_LAYER_1 * BATCH_SIZE * sizeof(float)));
   initLayer(net->weights1, net->biases1, HIDDEN_LAYER_1, INPUT_SIZE);
