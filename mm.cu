@@ -1,16 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime.h>
+#include <cassert>
 
 // Matrix A: MxK 
 // Matrix B: KxN
 // Matrix C: MxN
 // C = A * B
 
-#define M 256
-#define N 32
-#define K 784
+#define M 1024 //256
+#define N 1024 //32
+#define K 1024 //784
 #define BLOCK_SIZE 16
+
+
+#define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
+
 
 __global__ void mm1(float *A, float *B, float *C)
 { 
@@ -119,17 +124,74 @@ __global__ void mm4(float *A, float *B, float *C){
   C[threadRow * N + threadCol] = tmp;
 }
 
-void matrix_multiply_cpu(float *A, float *B, float *C, int m, int n, int k) {
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            float sum = 0.0f;
-            for (int l = 0; l < k; l++) {
-                sum += A[i * k + l] * B[l * n + j];
-            }
-            C[i * n + j] = sum;
-        }
+template <const int BM, const int BN, const int BK, const int TM>
+__global__ void mm5(const float *A, const float *B, float *C) {
+  // If we flip x and y here we get ~30% less performance for large matrices.
+  // The current, 30% faster configuration ensures that blocks with sequential
+  // blockIDs access columns of B sequentially, while sharing the same row of A.
+  // The slower configuration would share columns of A, but access into B would
+  // be non-sequential. So the faster configuration has better spatial locality
+  // and hence a greater L2 hit rate.
+  const uint cRow = blockIdx.y;
+  const uint cCol = blockIdx.x;
+
+  // each warp will calculate 32*TM elements, with 32 being the columnar dim.
+  const int threadCol = threadIdx.x % BN;
+  const int threadRow = threadIdx.x / BN;
+
+  // allocate space for the current blocktile in SMEM
+  __shared__ float As[BM * BK];
+  __shared__ float Bs[BK * BN];
+
+  // Move blocktile to beginning of A's row and B's column
+  A += cRow * BM * K;
+  B += cCol * BN;
+  C += cRow * BM * N + cCol * BN;
+
+  // todo: adjust this to each thread to load multiple entries and
+  // better exploit the cache sizes
+  assert(BM * BK == blockDim.x);
+  assert(BN * BK == blockDim.x);
+  const uint innerColA = threadIdx.x % BK; // warp-level GMEM coalescing
+  const uint innerRowA = threadIdx.x / BK;
+  const uint innerColB = threadIdx.x % BN; // warp-level GMEM coalescing
+  const uint innerRowB = threadIdx.x / BN;
+
+  // allocate thread-local cache for results in registerfile
+  float threadResults[TM] = {0.0};
+
+  // outer loop over block tiles
+  for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+    // populate the SMEM caches
+    As[innerRowA * BK + innerColA] = A[innerRowA * K + innerColA];
+    Bs[innerRowB * BN + innerColB] = B[innerRowB * N + innerColB];
+    __syncthreads();
+
+    // advance blocktile
+    A += BK;
+    B += BK * N;
+
+    // calculate per-thread results
+    for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+      // we make the dotproduct loop the outside loop, which facilitates
+      // reuse of the Bs entry, which we can cache in a tmp var.
+      float tmpB = Bs[dotIdx * BN + threadCol];
+      for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+        threadResults[resIdx] +=
+            As[(threadRow * TM + resIdx) * BK + dotIdx] * tmpB;
+      }
     }
+    __syncthreads();
+  }
+
+  // write out the results
+  for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+    C[(threadRow * TM + resIdx) * N + threadCol] = threadResults[resIdx];
+
+  }
 }
+
+
 
 void tiled_matrix_multiply_cpu(float *A, float *B, float *C){
   // Tiling for matrices:
@@ -152,6 +214,18 @@ void tiled_matrix_multiply_cpu(float *A, float *B, float *C){
       }
     }
   }
+}
+
+void matrix_multiply_cpu(float *A, float *B, float *C, int m, int n, int k) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            float sum = 0.0f;
+            for (int l = 0; l < k; l++) {
+                sum += A[i * k + l] * B[l * n + j];
+            }
+            C[i * n + j] = sum;
+        }
+    }
 }
 
 int main()
@@ -190,19 +264,16 @@ int main()
     cudaMemcpy(d_A, h_A, bytes_A, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, bytes_B, cudaMemcpyHostToDevice);
 
-    dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1)/ BLOCK_SIZE);
-    //2D blocks
-    // dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-    //1D blocks
-    dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     float milliseconds;
+    
+    runMM4(d_A, d_B, d_C);
 
     cudaEventRecord(start);
-    mm2<<<blocks, threads>>>(d_A, d_B, d_C);
+    runMM4(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -214,12 +285,11 @@ int main()
     printf("Time: %.4f ms\n", milliseconds);
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
-    dim3 blocks2((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
-    //1D blocks
-    dim3 threads2(BLOCK_SIZE* BLOCK_SIZE);
 
+    runMM5(d_A, d_B, d_C);
+    
     cudaEventRecord(start);
-    mm4<<<blocks2, threads2>>>(d_A, d_B, d_C);
+    runMM5(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
