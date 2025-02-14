@@ -7,6 +7,11 @@
 #define N 1024  // Number of columns
 #define THREADS_PER_BLOCK 1024
 
+#ifndef UNROLL_FACTOR
+#define UNROLL_FACTOR 8
+#endif
+constexpr int URF{UNROLL_FACTOR};
+
 #define BLOCK_DIM_Y 1024  // adjust as needed
 
 __global__ void act1(float *input, float *output)
@@ -61,7 +66,65 @@ __global__ void act1(float *input, float *output)
     }
 }
 
-__global__ void act2(float *input, float *output, int size)
+
+__global__ void act2(float *input, float *output)
+{
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    int ty = threadIdx.y;
+    __shared__ float reduction[BLOCK_DIM_Y];
+
+    if (row < M)
+    {
+        // Compute max value for the row
+        float maxval = 0;
+        #pragma unroll URF
+        for (int i = ty; i < N; i += BLOCK_DIM_Y)
+        {
+            maxval = fmaxf(maxval, input[row * N + i]);
+        }
+        reduction[ty] = maxval;
+        #pragma unroll URF
+        for (int stride = BLOCK_DIM_Y / 2; stride >= 1; stride /= 2)
+        {
+            __syncthreads();
+            if (ty < stride)
+            {
+                reduction[ty] = fmaxf(reduction[ty], reduction[ty + stride]);
+            }
+        }
+        __syncthreads();
+        maxval = reduction[0];
+
+        // Compute sum of exponentials for the row
+        float divisor = 0.f;
+        #pragma unroll URF
+        for (int i = ty; i < N; i += BLOCK_DIM_Y)
+        {
+            divisor += __expf(input[row * N + i] - maxval);
+        }
+        reduction[ty] = divisor;
+        #pragma unroll URF
+        for (int stride = BLOCK_DIM_Y / 2; stride >= 1; stride /= 2)
+        {
+            __syncthreads();
+            if (ty < stride)
+            {
+                reduction[ty] += reduction[ty + stride];
+            }
+        }
+        __syncthreads();
+        divisor = reduction[0];
+
+
+        // Compute final softmax outputs for the row
+        #pragma unroll URF
+        for (int i = ty; i < N; i += BLOCK_DIM_Y)
+        {
+            output[row * N + i] = __expf(input[row * N + i] - maxval) / divisor;
+        }
+    }
+}
+__global__ void act3(float *input, float *output)
 {
   int col = blockIdx.x*blockDim.x + threadIdx.x;
   int row = blockIdx.y*blockDim.y + threadIdx.y;
@@ -140,26 +203,31 @@ int main()
     float milliseconds;
 
     dim3 block_size = dim3(1, BLOCK_DIM_Y, 1);
-    dim3 grid_size = dim3((M + block_size.y - 1) / block_size.y, 1, 1);
+    dim3 grid_size = dim3(M, 1, 1);  // changed grid configuration to cover all M rows
+    // dim3 grid_size = dim3((M + block_size.y - 1) / block_size.y, 1, 1);
     cudaEventRecord(start);
     act1<<<grid_size, block_size>>>(d_input, d_act1);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("act1 execution time: %.4f ms\n", milliseconds);
+    float gflops_act1 = (7.0f * M * N) / (milliseconds * 1e6);
+    printf("act1 GFLOPS: %.4f\n", gflops_act1);
 
     // int blockSize = THREADS_PER_BLOCK;
     // int gridSize = (size + blockSize - 1) / blockSize;
 
     cudaEventRecord(start);
-    act2<<<numBlocks, numThreadsPerBlock>>>(d_input, d_act2, size);
+    // act3<<<numBlocks, numThreadsPerBlock>>>(d_input, d_act2);
+    act2<<<grid_size, block_size>>>(d_input, d_act2);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("act2 execution time: %.4f ms\n", milliseconds);
 
     cudaGetLastError();
-
+    float gflops_act2 = (7.0f * M * N) / (milliseconds * 1e6);
+    printf("act2 GFLOPS: %.4f\n", gflops_act2);
     cudaMemcpy(h_act1, d_act1, bytes, cudaMemcpyDeviceToHost);
     cudaMemcpy(h_act2, d_act2, bytes, cudaMemcpyDeviceToHost);
 
@@ -174,6 +242,8 @@ int main()
     }
     printf("Max difference (act1 vs CPU): %e\n", max_diff_sigmoid);
     printf("Max difference (act2 vs CPU): %e\n", max_diff_relu);
+
+
 
     cudaFree(d_input);
     cudaFree(d_act1);
