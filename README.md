@@ -72,6 +72,8 @@ Device 0: "NVIDIA GeForce RTX 4050 Laptop GPU"
 deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 12.7, CUDA Runtime Version = 12.6, NumDevs = 1
 Result = PASS
 ```
+### notes
+- 1d relu is faster than 2d relu
 
 
 ### References
