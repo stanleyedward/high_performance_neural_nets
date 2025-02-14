@@ -1,6 +1,11 @@
 #pragma once
 #include <cuda_runtime.h>
 
+#ifndef UNROLL_FACTOR
+#define UNROLL_FACTOR 8
+#endif
+constexpr int URF{UNROLL_FACTOR};
+
 __global__ void smem_coal_unrolled_softmax(int BLOCK_DIM_Y, int M, int N, float *input, float *output)
 {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -11,12 +16,14 @@ __global__ void smem_coal_unrolled_softmax(int BLOCK_DIM_Y, int M, int N, float 
     {
         // Compute max value for the row
         float maxval = 0;
+
         #pragma unroll URF
         for (int i = ty; i < N; i += BLOCK_DIM_Y)
         {
             maxval = fmaxf(maxval, input[row * N + i]);
         }
         reduction[ty] = maxval;
+
         #pragma unroll URF
         for (int stride = BLOCK_DIM_Y / 2; stride >= 1; stride /= 2)
         {
@@ -31,12 +38,14 @@ __global__ void smem_coal_unrolled_softmax(int BLOCK_DIM_Y, int M, int N, float 
 
         // Compute sum of exponentials for the row
         float divisor = 0.f;
+
         #pragma unroll URF
         for (int i = ty; i < N; i += BLOCK_DIM_Y)
         {
             divisor += __expf(input[row * N + i] - maxval);
         }
         reduction[ty] = divisor;
+
         #pragma unroll URF
         for (int stride = BLOCK_DIM_Y / 2; stride >= 1; stride /= 2)
         {
