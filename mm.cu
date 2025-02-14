@@ -418,7 +418,9 @@ int main()
     cudaEventCreate(&stop);
     float milliseconds;
     
-    runMM4(d_A, d_B, d_C);
+    //warmup kernel
+    runMM1(d_A, d_B, d_C);
+    printf("Warmup kernel completed\n");
 
     cudaEventRecord(start);
     runMM4(d_A, d_B, d_C);
@@ -433,11 +435,9 @@ int main()
     printf("Time: %.4f ms\n", milliseconds);
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
-
-    runMM5(d_A, d_B, d_C);
     
     cudaEventRecord(start);
-    runMM5(d_A, d_B, d_C);
+    runMM6(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
