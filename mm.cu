@@ -280,6 +280,66 @@ __global__ void __launch_bounds__((BM * BN) / (TM * TN), 1)
   }
 }
 
+void runMM1(float *A, float *B, float *C){
+    dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    //2D blocks
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    mm1<<<blocks, threads>>>(A, B, C);
+}
+
+void runMM2(float *A, float *B, float *C){
+    dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    //1D blocks
+    dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
+    mm2<<<blocks, threads>>>(A, B, C);
+}
+
+void runMM3(float *A, float *B, float *C){
+    dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    //2D blocks
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    mm3<<<blocks, threads>>>(A, B, C);
+}
+void runMM4(float *A, float *B, float *C){
+
+    dim3 blocks2((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    //1D blocks
+    dim3 threads2(BLOCK_SIZE* BLOCK_SIZE);
+    mm4<<<blocks2, threads2>>>(A, B, C);
+}
+
+void runMM5(float *A, float *B, float *C){
+  const uint BM = 64;
+  const uint BN = 64;
+  const uint BK = 8;
+  const uint TM = 8;
+  dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
+  dim3 blockDim((BM * BN) / TM);
+  mm5<BM, BN, BK, TM><<<gridDim, blockDim>>>(A, B, C);
+}
+
+void runMM6(float *A, float *B, float *C) {
+  const uint BK = 8;
+  const uint TM = 8;
+  const uint TN = 8;
+  if (M >= 128 and N >= 128) {
+    const uint BM = 128;
+    const uint BN = 128;
+    dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
+    dim3 blockDim((BM * BN) / (TM * TN));
+    sgemm2DBlocktiling<BM, BN, BK, TM, TN>
+        <<<gridDim, blockDim>>>(A, B, C);
+  } else {
+    // this is a hacky solution to the underlying problem
+    // of not having proper bounds checking in the kernel
+    const uint BM = 64;
+    const uint BN = 64;
+    dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
+    dim3 blockDim((BM * BN) / (TM * TN));
+    sgemm2DBlocktiling<BM, BN, BK, TM, TN>
+        <<<gridDim, blockDim>>>(A ,B, C);
+  }
+}
 
 void tiled_matrix_multiply_cpu(float *A, float *B, float *C){
   // Tiling for matrices:
