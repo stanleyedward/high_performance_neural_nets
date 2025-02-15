@@ -4,13 +4,13 @@ nn
 
 
 ### TODO
-
+- [x] add verify results to activation 
 - [x] read mnist dataset
 - [ ] modularize code 
 - [ ] pin mem
 - [ ] create make file
-- [ ] softmax optim
-- [ ] matmul optim
+- [x] softmax optim
+- [x] matmul optim
     
   -  coalesed accesses
   -  shared mem blocking
