@@ -6,22 +6,55 @@ nn
 ### TODO
 - [x] add verify results to activation 
 - [x] read mnist dataset
-- [ ] modularize code 
-- [ ] pin mem
-- [ ] create make file
 - [x] softmax optim
 - [x] matmul optim
-    
+- [ ] modularize code 
+- [ ] create make file
+  
+  -  pin mem
   -  coalesed accesses
   -  shared mem blocking
-  -  tiling?
-  -  cublas test
+  -  tiling
 
 - [ ] streams
   - data loading
   - kernel launches
 
+### Matrix Multiplication
+```sh
+Matrix A: 1024 x 1024
+Matrix B: 1024 x 1024
+Matrix C: 1024 x 1024
+Block size: 16 x 16
+
+Naive Kernel:
+Time: 13.4953 ms
+Performance: 159.13 GFLOPS
+
+SMEM Blocking Kernel:
+Time: 2.5004 ms
+Performance: 858.84 GFLOPS
+
+Validation Results:
+Naive Kernel max error: 9.155273e-05
+SMEM Blocking Kernel max error: 9.155273e-05
+```
+
+### Activation
+```sh
+Matrix sizes: 1024 x 1024
+
+naive softmax execution time: 52.6336 ms
+naive softmax GFLOPS: 0.1395
+optimized softmax execution time: 0.1956 ms
+optimized softmax GFLOPS: 37.5288
+
+Verifying Results
+Max difference (act1 vs CPU): 5.587935e-09
+Max difference (act2 vs CPU): 4.097819e-08
+```
 https://github.com/NVIDIA/cuda-samples.git
+
 ```sh
 cuda-samples/Samples/1_Utilities/deviceQuery git:master  
 (torch241cuda121) ❯ ./deviceQuery
@@ -72,9 +105,10 @@ Device 0: "NVIDIA GeForce RTX 4050 Laptop GPU"
 deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 12.7, CUDA Runtime Version = 12.6, NumDevs = 1
 Result = PASS
 ```
+
 ### notes
 - 1d relu is faster than 2d relu
-
+- for smem tiling tile_dim has to be a multiple of M, N, K
 
 ### References
 

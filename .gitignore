@@ -1,3 +1,5 @@
 *.csv
 *.o
 test.cu
+a.out
+nn_test.cu
