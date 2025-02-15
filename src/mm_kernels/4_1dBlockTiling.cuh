@@ -1,8 +1,9 @@
 #pragma once
 #include <cuda_runtime.h>
+#include <cassert>
 
 template <const int BM, const int BN, const int BK, const int TM>
-__global__ void mm4(const float *A, const float *B, float *C) {
+__global__ void mm4(int M, int N, int K, const float *A, const float *B, float *C) {
   // If we flip x and y here we get ~30% less performance for large matrices.
   // The current, 30% faster configuration ensures that blocks with sequential
   // blockIDs access columns of B sequentially, while sharing the same row of A.

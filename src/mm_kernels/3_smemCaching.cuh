@@ -1,8 +1,8 @@
 #pragma once
 #include <cuda_runtime.h>
 
-
-__global__ void mm3(uint BLOCK_SIZE, uint M, uint N, uint K, float *A, float *B, float *C){
+template <uint BLOCK_SIZE>
+__global__ void mm3(uint M, uint N, uint K, float *A, float *B, float *C){
   // siboehm 
   // M, N, K have to be multiples of BLOCK_SIZE
   // shared memory 
@@ -14,6 +14,10 @@ __global__ void mm3(uint BLOCK_SIZE, uint M, uint N, uint K, float *A, float *B,
   // shared mem is shared between all threads in a block
   __shared__ float As[BLOCK_SIZE * BLOCK_SIZE];
   __shared__ float Bs[BLOCK_SIZE * BLOCK_SIZE];
+
+  //  extern __shared__ float sdata[];
+  // float* As = sdata;
+  // float* Bs = sdata + BLOCK_SIZE * BLOCK_SIZE;
 
   // the inner row & col that we're accessing in this thread
   const uint threadCol = threadIdx.x % BLOCK_SIZE;
