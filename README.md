@@ -1,4 +1,4 @@
-## nn cuda
+## High Performance NNs
 cuda 121
 nn
 
