@@ -204,9 +204,10 @@ int main()
 
     dim3 block_size = dim3(1, BLOCK_DIM_Y, 1);
     dim3 grid_size = dim3(M, 1, 1);  // changed grid configuration to cover all M rows
-    // dim3 grid_size = dim3((M + block_size.y - 1) / block_size.y, 1, 1);
-    cudaEventRecord(start);
+    //warmup
     act1<<<grid_size, block_size>>>(d_input, d_act1);
+    cudaEventRecord(start);
+    act3<<<grid_size, block_size>>>(d_input, d_act1);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -242,7 +243,6 @@ int main()
     }
     printf("Max difference (act1 vs CPU): %e\n", max_diff_sigmoid);
     printf("Max difference (act2 vs CPU): %e\n", max_diff_relu);
-
 
 
     cudaFree(d_input);

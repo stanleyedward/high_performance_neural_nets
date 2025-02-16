@@ -53,6 +53,25 @@ Verifying Results
 Max difference (act1 vs CPU): 5.587935e-09
 Max difference (act2 vs CPU): 4.097819e-08
 ```
+
+### nn
+unoptimized nn implementation
+
+```sh
+initialization took 202 ms
+epoch 0 592ms | total loss 39498.4 | accuracy 0.60045 | val loss 2987.2 | val accuracy 0.825321
+epoch 1 548ms | total loss 15723.2 | accuracy 0.852967 | val loss 2087.42 | val accuracy 0.8749
+epoch 2 546ms | total loss 12834.3 | accuracy 0.880017 | val loss 1823.6 | val accuracy 0.890425
+epoch 3 546ms | total loss 11616.7 | accuracy 0.891217 | val loss 1684.84 | val accuracy 0.898938
+epoch 4 544ms | total loss 10846.9 | accuracy 0.897633 | val loss 1591.47 | val accuracy 0.903946
+epoch 5 544ms | total loss 10264.8 | accuracy 0.903167 | val loss 1515.5 | val accuracy 0.909355
+epoch 6 546ms | total loss 9776 | accuracy 0.9075 | val loss 1451.22 | val accuracy 0.913061
+epoch 7 548ms | total loss 9354.34 | accuracy 0.912083 | val loss 1394.4 | val accuracy 0.917268
+epoch 8 546ms | total loss 8982.43 | accuracy 0.91615 | val loss 1344.83 | val accuracy 0.920473
+epoch 9 546ms | total loss 8645.23 | accuracy 0.9195 | val loss 1298.9 | val accuracy 0.923578
+finished training, total time = 5506 ms
+```
+
 https://github.com/NVIDIA/cuda-samples.git
 
 ```sh
