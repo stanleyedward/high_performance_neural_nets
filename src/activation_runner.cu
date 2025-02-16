@@ -15,10 +15,11 @@ void run_softmax1(int M, int N, float *d_input, float *d_output) {
 }
 
 void run_softmax2(int M, int N, float *d_input, float *d_output) {
-    const int BLOCK_DIM_Y = 1024;
+    const int BLOCK_DIM_Y = 16;
     dim3 block_size = dim3(1, BLOCK_DIM_Y, 1);
     dim3 grid_size = dim3(M, 1, 1);  
     smem_coal_unrolled_softmax<BLOCK_DIM_Y><<<grid_size, block_size>>>(M, N, d_input, d_output);
+
 }
 
 void verify_results_activation(uint M, uint N, float *gpu_results1, float *gpu_results2, float *cpu_results){

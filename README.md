@@ -58,18 +58,27 @@ Max difference (act2 vs CPU): 4.097819e-08
 unoptimized nn implementation
 
 ```sh
-initialization took 202 ms
-epoch 0 592ms | total loss 39498.4 | accuracy 0.60045 | val loss 2987.2 | val accuracy 0.825321
-epoch 1 548ms | total loss 15723.2 | accuracy 0.852967 | val loss 2087.42 | val accuracy 0.8749
-epoch 2 546ms | total loss 12834.3 | accuracy 0.880017 | val loss 1823.6 | val accuracy 0.890425
-epoch 3 546ms | total loss 11616.7 | accuracy 0.891217 | val loss 1684.84 | val accuracy 0.898938
-epoch 4 544ms | total loss 10846.9 | accuracy 0.897633 | val loss 1591.47 | val accuracy 0.903946
-epoch 5 544ms | total loss 10264.8 | accuracy 0.903167 | val loss 1515.5 | val accuracy 0.909355
-epoch 6 546ms | total loss 9776 | accuracy 0.9075 | val loss 1451.22 | val accuracy 0.913061
-epoch 7 548ms | total loss 9354.34 | accuracy 0.912083 | val loss 1394.4 | val accuracy 0.917268
-epoch 8 546ms | total loss 8982.43 | accuracy 0.91615 | val loss 1344.83 | val accuracy 0.920473
-epoch 9 546ms | total loss 8645.23 | accuracy 0.9195 | val loss 1298.9 | val accuracy 0.923578
-finished training, total time = 5506 ms
+Hyperparameters:
+Hidden Layer 1: 256
+Hidden Layer 2: 256
+Output Layer: 10
+Batch Size: 256
+Learning Rate: 0.015000
+Epochs: 10
+
+read mnist took 2389 ms
+initialization took 1863 ms
+epoch 0 270ms | total loss 5945.81 | accuracy 0.495126 | val loss 529.544 | val accuracy 0.766827
+epoch 1 238ms | total loss 2439.71 | accuracy 0.810113 | val loss 346.389 | val accuracy 0.847957
+epoch 2 238ms | total loss 1854.15 | accuracy 0.851613 | val loss 299.758 | val accuracy 0.869792
+epoch 3 239ms | total loss 1638.33 | accuracy 0.870476 | val loss 276.336 | val accuracy 0.880609
+epoch 4 241ms | total loss 1517.68 | accuracy 0.880826 | val loss 262.91 | val accuracy 0.887821
+epoch 5 238ms | total loss 1440.33 | accuracy 0.886685 | val loss 254.229 | val accuracy 0.892127
+epoch 6 239ms | total loss 1386.69 | accuracy 0.891476 | val loss 247.852 | val accuracy 0.897135
+epoch 7 238ms | total loss 1344.75 | accuracy 0.894732 | val loss 242.446 | val accuracy 0.901242
+epoch 8 239ms | total loss 1309.51 | accuracy 0.898438 | val loss 237.558 | val accuracy 0.903646
+epoch 9 238ms | total loss 1279.85 | accuracy 0.901542 | val loss 232.655 | val accuracy 0.90625
+finished training, total time = 2418 ms
 ```
 
 https://github.com/NVIDIA/cuda-samples.git
@@ -126,6 +135,7 @@ Result = PASS
 ```
 
 ### notes
+- for the last layer use mm2 kernel
 - 1d relu is faster than 2d relu
 - for smem tiling tile_dim has to be a multiple of M, N, K
 

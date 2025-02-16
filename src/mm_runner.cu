@@ -59,6 +59,7 @@ void runMM4(int M, int N, int K, float *A, float *B, float *C){
   const uint BN = 64;
   const uint BK = 8;
   const uint TM = 8;
+
   dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
   dim3 blockDim((BM * BN) / TM);
   mm4<BM, BN, BK, TM><<<gridDim, blockDim>>>(M, N, K, A, B, C);

@@ -8,9 +8,9 @@
 // Matrix C: MxN
 // C = A * B
 
-#define M 1024 //256
-#define N 1024 //32
-#define K 1024 //784
+#define M 10 //256
+#define N 256 //32 batch size
+#define K 256 //784
 #define BLOCK_SIZE 16
 
 
@@ -225,6 +225,7 @@ void runMM5(float *A, float *B, float *C){
   const uint BN = 64;
   const uint BK = 8;
   const uint TM = 8;
+
   dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
   dim3 blockDim((BM * BN) / TM);
   mm5<BM, BN, BK, TM><<<gridDim, blockDim>>>(A, B, C);
@@ -312,7 +313,7 @@ int main()
     printf("Warmup kernel completed\n");
 
     cudaEventRecord(start);
-    runMM1(d_A, d_B, d_C);
+    runMM2(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -326,7 +327,7 @@ int main()
     
     
     cudaEventRecord(start);
-    runMM4(d_A, d_B, d_C);
+    runMM5(d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
