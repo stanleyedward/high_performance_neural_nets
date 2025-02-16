@@ -1,4 +1,3 @@
-#pragma once
 #include "activation_kernels.cuh"
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -16,10 +15,10 @@ void run_softmax1(int M, int N, float *d_input, float *d_output) {
 }
 
 void run_softmax2(int M, int N, float *d_input, float *d_output) {
-    int BLOCK_DIM_Y = 1024;
+    const int BLOCK_DIM_Y = 1024;
     dim3 block_size = dim3(1, BLOCK_DIM_Y, 1);
     dim3 grid_size = dim3(M, 1, 1);  
-    smem_coal_unrolled_softmax<<<grid_size, block_size>>>(BLOCK_DIM_Y, M, N, d_input, d_output);
+    smem_coal_unrolled_softmax<BLOCK_DIM_Y><<<grid_size, block_size>>>(M, N, d_input, d_output);
 }
 
 void verify_results_activation(uint M, uint N, float *gpu_results1, float *gpu_results2, float *cpu_results){
@@ -31,8 +30,8 @@ void verify_results_activation(uint M, uint N, float *gpu_results1, float *gpu_r
         max_error2 = fmax(max_error2, fabs(gpu_results2[i] - cpu_results[i]));
     }
 
-    printf("Max error in Activation Kernel 1: %f\n", max_error1);
-    printf("Max error in Activation Kernel 2: %f\n", max_error2);
+    printf("Max error in Activation Kernel 1: %e\n", max_error1);
+    printf("Max error in Activation Kernel 2: %e\n", max_error2);
 }
 
 void run_kernel_softmax(int kernel_num, int M, int N, float *d_input, float *d_output) {
