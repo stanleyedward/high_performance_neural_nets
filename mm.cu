@@ -25,14 +25,17 @@ int main()
   printf("Matrix A: %d x %d\n", M, K);
   printf("Matrix B: %d x %d\n", K, N);
   printf("Matrix C: %d x %d\n", M, N);
+  printf("Bias: %d x 1\n", N);
   printf("Block size: %d x %d\n\n", BLOCK_SIZE, BLOCK_SIZE);
 
     size_t bytes_A = M * K * sizeof(float);
     size_t bytes_B = K * N * sizeof(float);
     size_t bytes_C = M * N * sizeof(float);
+    size_t bytes_bias = N * sizeof(float);
 
     float *h_A = (float *)malloc(bytes_A);
     float *h_B = (float *)malloc(bytes_B);
+    float *h_bias = (float *)malloc(bytes_bias);
     float *h_C1 = (float *)malloc(bytes_C);
     float *h_C2 = (float *)malloc(bytes_C);
     float *h_C_cpu = (float*)malloc(bytes_C);
@@ -45,15 +48,20 @@ int main()
     {
       h_B[i] = rand() / (float)RAND_MAX;
     }
+    for (int i = 0; i < N; ++i)
+    {
+      h_bias[i] = rand() / (float)RAND_MAX;
+    }
 
-    float *d_A, *d_B, *d_C;
+    float *d_A, *d_B, *d_C, *d_bias;
     cudaMalloc(&d_A, bytes_A);
     cudaMalloc(&d_B, bytes_B);
     cudaMalloc(&d_C, bytes_C);
+    cudaMalloc(&d_bias, bytes_bias);
 
     cudaMemcpy(d_A, h_A, bytes_A, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, bytes_B, cudaMemcpyHostToDevice);
-
+    cudaMemcpy(d_bias, h_bias, bytes_bias, cudaMemcpyHostToDevice);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -61,11 +69,11 @@ int main()
     float milliseconds;
     
     //warmup kernel
-    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C);
+    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     printf("Warmup kernel completed\n");
 
     cudaEventRecord(start);
-    run_kernel_MM(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C);
+    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -77,7 +85,7 @@ int main()
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
     cudaEventRecord(start);
-    run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C);
+    run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -89,7 +97,7 @@ int main()
     printf("Performance: %.2f GFLOPS\n", gflops_kernel2);
     
     // Compute CPU reference
-    run_kernel_MM(0, BLOCK_SIZE, M, N, K, h_A, h_B, h_C_cpu);
+    run_kernel_MM(0, BLOCK_SIZE, M, N, K, h_A, h_B, h_C_cpu, h_bias);
     verify_results_MM(M, N, K, h_C1, h_C2, h_C_cpu);
 
     cudaFree(d_A);
