@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 template <uint BLOCK_SIZE>
-__global__ void mm3(uint M, uint N, uint K, float *A, float *B, float *C){
+__global__ void mm3(uint M, uint N, uint K, float *A, float *B, float *C, float *bias){
   // siboehm 
   // M, N, K have to be multiples of BLOCK_SIZE
   // shared memory 
@@ -50,5 +50,5 @@ __global__ void mm3(uint M, uint N, uint K, float *A, float *B, float *C){
     // fetching the next block into the cache before slower threads are done
     __syncthreads();
   }
-  C[threadRow * N + threadCol] = tmp;
+  C[threadRow * N + threadCol] = bias[cCol * BLOCK_SIZE + threadCol] + tmp;
 }

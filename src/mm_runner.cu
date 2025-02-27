@@ -18,35 +18,35 @@ void verify_results_MM(uint M, uint N, uint K, float *gpu_results1, float *gpu_r
     printf("Max error in MM Kernel 2: %e\n", max_error2);
 }
 
-void runCPU(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C){
-matrix_multiply_cpu(M, N, K, A, B, C);
+void runCPU(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C, float *bias){
+matrix_multiply_cpu(M, N, K, A, B, C, bias);
 // tiled_matrix_multiply_cpu(BLOCK_SIZE, M, N, K, A, B, C);
 }
 
-void runMM1(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C){
+void runMM1(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C, float *bias){
     dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
     //2D blocks
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-    mm1<<<blocks, threads>>>(M, N, K, A, B, C);
+    mm1<<<blocks, threads>>>(M, N, K, A, B, C, bias);
 }
 
-void runMM2(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C){
+void runMM2(int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C, float *bias){
     dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
     //2D blocks
     dim3 threads(BLOCK_SIZE * BLOCK_SIZE);
-    mm2<<<blocks, threads>>>(BLOCK_SIZE, M, N, K, A, B, C);
+    mm2<<<blocks, threads>>>(BLOCK_SIZE, M, N, K, A, B, C, bias);
 }
 
-void runMM3(uint BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C){
+void runMM3(uint BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C, float *bias){
     dim3 blocks((M + BLOCK_SIZE - 1) / BLOCK_SIZE, (N + BLOCK_SIZE - 1) / BLOCK_SIZE);
     //1D blocks
     dim3 threads(BLOCK_SIZE* BLOCK_SIZE);
     switch(BLOCK_SIZE){
       case 16:
-        mm3<16><<<blocks, threads>>>(M, N, K, A, B, C);
+        mm3<16><<<blocks, threads>>>(M, N, K, A, B, C, bias);
         break;
       case 32:
-        mm3<32><<<blocks, threads>>>(M, N, K, A, B, C);
+        mm3<32><<<blocks, threads>>>(M, N, K, A, B, C, bias);
         break;
       default:
         printf("Invalid block size\n");
@@ -54,7 +54,7 @@ void runMM3(uint BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C){
     }
 }
 
-void runMM4(int M, int N, int K, float *A, float *B, float *C){
+void runMM4(int M, int N, int K, float *A, float *B, float *C, float *bias){
   const uint BM = 64;
   const uint BN = 64;
   const uint BK = 8;
@@ -62,25 +62,25 @@ void runMM4(int M, int N, int K, float *A, float *B, float *C){
 
   dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
   dim3 blockDim((BM * BN) / TM);
-  mm4<BM, BN, BK, TM><<<gridDim, blockDim>>>(M, N, K, A, B, C);
+  mm4<BM, BN, BK, TM><<<gridDim, blockDim>>>(M, N, K, A, B, C, bias);
 }
 
-void run_kernel_MM(int kernel_num, int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C) {
+void run_kernel_MM(int kernel_num, int BLOCK_SIZE, int M, int N, int K, float *A, float *B, float *C, float *bias) {
   switch (kernel_num) {
   case 0:
-    runCPU(BLOCK_SIZE, M, N, K, A, B, C);
+    runCPU(BLOCK_SIZE, M, N, K, A, B, C, bias);
     break;
   case 1:
-    runMM1(BLOCK_SIZE, M, N, K, A, B, C);
+    runMM1(BLOCK_SIZE, M, N, K, A, B, C, bias);
     break;
   case 2:
-    runMM2(BLOCK_SIZE, M, N, K, A, B, C);
+    runMM2(BLOCK_SIZE, M, N, K, A, B, C, bias);
     break;
   case 3:
-    runMM3(BLOCK_SIZE, M, N, K, A, B, C);
+    runMM3(BLOCK_SIZE, M, N, K, A, B, C, bias);
     break;
   case 4:
-    runMM4(M, N, K, A, B, C);
+    runMM4(M, N, K, A, B, C, bias);
     break;
   default:
     throw std::invalid_argument("Unknown kernel number");

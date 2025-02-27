@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 
-__global__ void mm1(uint M, uint N, uint K, float *A, float *B, float *C)
+__global__ void mm1(uint M, uint N, uint K, float *A, float *B, float *C, float *bias)
 { 
   // naive 
   // 2D blocks
@@ -15,6 +15,6 @@ __global__ void mm1(uint M, uint N, uint K, float *A, float *B, float *C)
     for (int i = 0; i < K; ++i) {
       tmp += A[x * K + i] * B[i * N + y];
     }
-    C[x * N + y] = tmp;
+    C[x * N + y] = bias[y] + tmp;
   }
 }
