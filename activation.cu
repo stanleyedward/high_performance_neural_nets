@@ -4,8 +4,8 @@
 #include <math.h>
 #include "activation_runner.cuh"
 
-#define M 10  // Number of rows /OUTPUT
-#define N 256  // Number of columns /BATCH_SIZE
+#define M 1024  // Number of rows /OUTPUT
+#define N 1024  // Number of columns /BATCH_SIZE
 
 int main()
 {
@@ -18,7 +18,7 @@ int main()
     float *h_input = (float *)malloc(bytes);
     float *h_act1 = (float *)malloc(bytes);
     float *h_act2 = (float *)malloc(bytes);
-    float *h_cpu_softmax = (float *)malloc(bytes);
+    float *h_cpu_out = (float *)malloc(bytes);
 
     // init input with random values between -10 to 10
     for (int i = 0; i < size; i++)
@@ -39,10 +39,12 @@ int main()
     float milliseconds;
 
     //warmup
-    run_kernel_softmax(1, M, N, d_input, d_act1);
+    // run_kernel_softmax(1, M, N, d_input, d_act1);
+    run_kernel_relu(1, M, N, d_input, d_act1);
     
     cudaEventRecord(start);
-    run_kernel_softmax(1, M, N, d_input, d_act1);
+    // run_kernel_softmax(1, M, N, d_input, d_act1);
+    run_kernel_relu(1, M, N, d_input, d_act1);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -52,7 +54,8 @@ int main()
     printf("\n");
 
     cudaEventRecord(start);
-    run_kernel_softmax(2, M, N, d_input, d_act2);
+    // run_kernel_softmax(2, M, N, d_input, d_act2);
+    run_kernel_relu(2, M, N, d_input, d_act2);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -65,8 +68,9 @@ int main()
     cudaMemcpy(h_act2, d_act2, bytes, cudaMemcpyDeviceToHost);
     printf("\n");
 
-    run_kernel_softmax(0, M, N, h_input, h_cpu_softmax);
-    verify_results_activation(M, N, h_act1, h_act2, h_cpu_softmax);
+    // run_kernel_softmax(0, M, N, h_input, h_cpu_out);
+    run_kernel_relu(0, M, N, h_input, h_cpu_out);
+    verify_results_activation(M, N, h_act1, h_act2, h_cpu_out);
 
     cudaFree(d_input);
     cudaFree(d_act1);
@@ -74,6 +78,7 @@ int main()
     free(h_input);
     free(h_act1);
     free(h_act2);
+    free(h_cpu_out);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
