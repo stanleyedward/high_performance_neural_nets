@@ -77,7 +77,7 @@ int main()
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
     cudaEventRecord(start);
-    run_kernel_MM(3, BLOCK_SIZE, M, N, K, d_A, d_B, d_C);
+    run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
