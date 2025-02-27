@@ -8,7 +8,8 @@ nn
 - [x] read mnist dataset
 - [x] softmax optim
 - [x] matmul optim
-- [ ] update the mm kernels to compute biases
+- [x] update the mm kernels to compute biases
+- [ ] backward pass module
 - [ ] modularize code 
 - [ ] create make file
   

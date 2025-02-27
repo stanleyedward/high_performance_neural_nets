@@ -10,6 +10,8 @@
 #include <string>
 #include "helper_functions.cuh"
 #include "init.cuh"
+#include "mm_runner.cuh"
+#include "activation_runner.cuh"
 
 #define TEST_LENGTH 10000
 #define TRAIN_LENGTH 60000
@@ -27,62 +29,6 @@
 #define EPOCHS 10
 #define LR 0.015
 
-
-__global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
-{
-  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < batch_size && column < out_w)
-  {
-    output[row * out_w + column] = biases[column];
-    for (int i = 0; i < n; i++)
-    {
-      output[row * out_w + column] += weights[i * out_w + column] * input[row * n + i];
-    }
-  }
-}
-
-// __global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
-// {
-//   // simon oz
-//   // Assuming blockDim.x == blockDim.y == TILE_WIDTH
-//   int tx = threadIdx.x;
-//   int ty = threadIdx.y;
-//   int row = blockIdx.y * TILE_WIDTH + ty;
-//   int col = blockIdx.x * TILE_WIDTH + tx;
-
-//   __shared__ float input_tile[TILE_WIDTH][TILE_WIDTH];
-//   __shared__ float weights_tile[TILE_WIDTH][TILE_WIDTH];
-
-//   float sum = 0.f;
-//   for (int tile_offset = 0; tile_offset < n; tile_offset += TILE_WIDTH)
-//   {
-//     // Load input tile
-//     if (row < batch_size && tile_offset + tx < n)
-//       input_tile[ty][tx] = input[row * n + tile_offset + tx];
-//     else
-//       input_tile[ty][tx] = 0.f;
-
-//     // Load weights tile
-//     if (col < out_w && tile_offset + ty < n)
-//       weights_tile[ty][tx] = weights[(tile_offset + ty) * out_w + col];
-//     else
-//       weights_tile[ty][tx] = 0.f;
-
-//     __syncthreads();
-
-//     for (int k = 0; k < TILE_WIDTH; k++)
-//     {
-//       sum += input_tile[ty][k] * weights_tile[k][tx];
-//     }
-//     __syncthreads();
-//   }
-
-//   if (row < batch_size && col < out_w)
-//   {
-//     output[row * out_w + col] = biases[col] + sum;
-//   }
-// }
 
 __global__ void linear_backward(int batch_size, int n, int out_w, float *weights, float *biases, float *d_l, float *out_d_l)
 {
@@ -142,26 +88,6 @@ __global__ void relu_backwards(int w, int h, float *a, float *d_l, float *b)
   }
 }
 
-__global__ void softmax(int w, int h, float *a, float *b)
-{
-  const uint col = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < h && col < w)
-  {
-    float maxval = a[row * w];
-    for (int i = 1; i < w; i++)
-    {
-      maxval = max(maxval, a[row * w + i]);
-    }
-    float divisor = 0.f;
-    for (int i = 0; i < w; i++)
-    {
-      divisor += exp(a[row * w + i] - maxval);
-    }
-    b[row * w + col] = exp(a[row * w + col] - maxval) / (divisor);
-  }
-}
-
 __global__ void cross_entropy(int w, int h, float *preds, float *real, float *output)
 {
   const uint idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -193,21 +119,20 @@ void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float 
 
   numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
   numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
-  linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, INPUT_SIZE, HIDDEN_LAYER_1, input, net->weights1, net->biases1, x1);
+  run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, x1, net->biases1);
   CUDA_CHECK(cudaPeekAtLastError());
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
   CUDA_CHECK(cudaPeekAtLastError());
 
   numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, x2);
+  run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, x2, net->biases2);
   CUDA_CHECK(cudaPeekAtLastError());
   relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  linear_forward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, x3);
+  run_kernel_MM(2, BLOCK_SIZE, BATCH_SIZE, OUTPUT_LAYER, HIDDEN_LAYER_2, a2, net->weights3, x3, net->biases3);
   CUDA_CHECK(cudaPeekAtLastError());
-  softmax<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, x3, a3);
+  run_kernel_softmax(2, BATCH_SIZE, OUTPUT_LAYER, x3, a3);
   CUDA_CHECK(cudaPeekAtLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -401,7 +326,7 @@ int main(int argc, char **argv)
   }
   std::cout << "finished training, total time = " << total_time << " ms" << std::endl;
 
-  // Free memory
+  // free mem
   free_network(&net);
   cudaFree(input);
   cudaFree(labels);
