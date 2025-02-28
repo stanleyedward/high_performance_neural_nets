@@ -9,9 +9,10 @@ nn
 - [x] softmax optim
 - [x] matmul optim
 - [x] update the mm kernels to compute biases
-- [ ] backward pass module
-- [ ] modularize code 
-- [ ] create make file
+- [x] backward pass module
+- [x] modularize code 
+- [x] create make file
+- [ ] remove hardcoded blocksize in activation, loss and backward
   
   -  pin mem
   -  coalesed accesses

@@ -8,7 +8,7 @@ LDLIBS    := -lcudart
 TARGETS              := nn mm activation
 ACTIVATION_SRCS      := activation.cu src/activation_runner.cu
 MM_SRCS              := mm.cu src/mm_runner.cu
-NN_SRCS              := nn.cu src/activation_runner.cu src/mm_runner.cu
+NN_SRCS              := nn.cu src/activation_runner.cu src/mm_runner.cu src/backward_runner.cu
 
 .PHONY: all clean
 
