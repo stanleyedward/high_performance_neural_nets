@@ -1,4 +1,4 @@
-//nvcc nn_test.cu src/mm_runner.cu src/activation_runner.cu -I./src -o nn_test.o -L/usr/local/cuda/lib64 -lcudart
+//nvcc nn_test.cu src/mm_runner.cu src/activation_runner.cu src/backward_runner.cu -I./src -o nn_test.o -L/usr/local/cuda/lib64 -lcudart
 
 #include <chrono>
 #include <fstream>
@@ -12,6 +12,8 @@
 #include "init.cuh"
 #include "mm_runner.cuh"
 #include "activation_runner.cuh"
+#include "backward_runner.cuh"
+#include "loss.cuh"
 
 #define TEST_LENGTH 10000
 #define TRAIN_LENGTH 60000
@@ -30,104 +32,16 @@
 #define LR 0.015
 
 
-__global__ void linear_backward(int batch_size, int n, int out_w, float *weights, float *biases, float *d_l, float *out_d_l)
-{
-  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < batch_size && column < out_w)
-  {
-    float dl = 0.f;
-    for (int i = 0; i < n; i++)
-    {
-      float w = weights[i * out_w + column];
-      dl += w * d_l[row * n + i];
-    }
-    out_d_l[row * out_w + column] = dl;
-  }
-}
-
-__global__ void update_layer(int w, int h, int batch_size, float lr, float *weights, float *biases, float *activations, float *d_l)
-{
-  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < h && column < w)
-  {
-    float dw = 0.f;
-    float db = 0.f;
-    for (int i = 0; i < batch_size; i++)
-    {
-      float act = activations[i * h + row];
-      float dl = d_l[i * w + column];
-      dw += act * dl;
-      db += dl;
-    }
-    weights[row * w + column] -= lr * dw / batch_size;
-    biases[column] -= lr * db / batch_size;
-  }
-}
-
-__global__ void relu(int w, int h, float *a, float *b)
-{
-  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < h && column < w)
-  {
-    float activation = a[row * w + column];
-    b[row * w + column] = activation > 0.f ? activation : 0.f;
-  }
-}
-
-__global__ void relu_backwards(int w, int h, float *a, float *d_l, float *b)
-{
-  const uint column = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < h && column < w)
-  {
-    float activation = a[row * w + column];
-    b[row * w + column] = activation > 0.f ? d_l[row * w + column] : 0.f;
-  }
-}
-
-__global__ void cross_entropy(int w, int h, float *preds, float *real, float *output)
-{
-  const uint idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < h)
-  {
-    float loss = 0.f;
-    for (int i = 0; i < w; i++)
-    {
-      loss -= real[idx * w + i] * log(max(1e-6, preds[idx * w + i]));
-    }
-    output[idx] = loss;
-  }
-}
-
-__global__ void cross_entropy_backwards(int w, int h, float *preds, float *real, float *output)
-{
-  const uint col = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint row = blockIdx.y * blockDim.y + threadIdx.y;
-  if (row < h && col < w)
-  {
-    output[row * w + col] = preds[row * w + col] - real[row * w + col];
-  }
-}
-
-
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
 {
-  dim3 numBlocks, numThreadsPerBlock;
-
-  numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
   run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, x1, net->biases1);
   CUDA_CHECK(cudaPeekAtLastError());
-  relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, x1, a1);
+  run_kernel_relu(2, BATCH_SIZE, HIDDEN_LAYER_1, x1, a1);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
   run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, x2, net->biases2);
   CUDA_CHECK(cudaPeekAtLastError());
-  relu<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, x2, a2);
+  run_kernel_relu(2, BATCH_SIZE, HIDDEN_LAYER_2, x2, a2);
   CUDA_CHECK(cudaPeekAtLastError());
 
   run_kernel_MM(2, BLOCK_SIZE, BATCH_SIZE, OUTPUT_LAYER, HIDDEN_LAYER_2, a2, net->weights3, x3, net->biases3);
@@ -139,37 +53,27 @@ void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float 
 
 void backward_pass(NeuralNetwork *net, float *input, float *labels, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3, float *loss)
 {
-  dim3 numBlocks, numThreadsPerBlock;
-
-  numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
-  cross_entropy_backwards<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, a3, labels, net->grad_layer3);
+  run_cross_entropy_backwards(BATCH_SIZE, OUTPUT_LAYER, a3, labels, net->grad_layer3);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  linear_backward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, OUTPUT_LAYER, HIDDEN_LAYER_2, net->weights3, net->biases3, net->grad_layer3, net->grad_layer2);
+  run_linearBW(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, net->weights3, net->biases3, net->grad_layer3, net->grad_layer2);
   CUDA_CHECK(cudaPeekAtLastError());
-  relu_backwards<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, BATCH_SIZE, a2, net->grad_layer2, net->grad_layer2);
+  run_relu_backwards(BATCH_SIZE, HIDDEN_LAYER_2, a2, net->grad_layer2, net->grad_layer2);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (BATCH_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  linear_backward<<<numBlocks, numThreadsPerBlock>>>(BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, net->weights2, net->biases2, net->grad_layer2, net->grad_layer1);
+  run_linearBW(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, net->weights2, net->biases2, net->grad_layer2, net->grad_layer1);
   CUDA_CHECK(cudaPeekAtLastError());
-  relu_backwards<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, BATCH_SIZE, a1, net->grad_layer1, net->grad_layer1);
+  run_relu_backwards(BATCH_SIZE, HIDDEN_LAYER_1, a1, net->grad_layer1, net->grad_layer1);
   CUDA_CHECK(cudaPeekAtLastError());
 
   // Update layers
-  numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, (HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  numThreadsPerBlock = dim3(BLOCK_SIZE, BLOCK_SIZE, 1);
-  update_layer<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, HIDDEN_LAYER_2, BATCH_SIZE, LR, net->weights3, net->biases3, a2, net->grad_layer3);
+  run_update_layer(HIDDEN_LAYER_2, OUTPUT_LAYER, BATCH_SIZE, LR, net->weights3, net->biases3, a2, net->grad_layer3);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((HIDDEN_LAYER_2 + BLOCK_SIZE - 1) / BLOCK_SIZE, (HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  update_layer<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_2, HIDDEN_LAYER_1, BATCH_SIZE, LR, net->weights2, net->biases2, a1, net->grad_layer2);
+  run_update_layer(HIDDEN_LAYER_1, HIDDEN_LAYER_2, BATCH_SIZE, LR, net->weights2, net->biases2, a1, net->grad_layer2);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  numBlocks = dim3((HIDDEN_LAYER_1 + BLOCK_SIZE - 1) / BLOCK_SIZE, (INPUT_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE, 1);
-  update_layer<<<numBlocks, numThreadsPerBlock>>>(HIDDEN_LAYER_1, INPUT_SIZE, BATCH_SIZE, LR, net->weights1, net->biases1, input, net->grad_layer1);
+  run_update_layer(INPUT_SIZE, HIDDEN_LAYER_1, BATCH_SIZE, LR, net->weights1, net->biases1, input, net->grad_layer1);
   CUDA_CHECK(cudaPeekAtLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -236,9 +140,7 @@ int main(int argc, char **argv)
       forward_pass(&net, input, x1, a1, x2, a2, x3, a3);
 
       // Compute loss
-      dim3 numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, 1, 1);
-      dim3 numThreadsPerBlock = dim3(BLOCK_SIZE, 1, 1);
-      cross_entropy<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, a3, labels, loss);
+      loss_fn(BATCH_SIZE, OUTPUT_LAYER, a3, labels, loss);
       CUDA_CHECK(cudaPeekAtLastError());
 
       CUDA_CHECK(cudaDeviceSynchronize());
@@ -285,9 +187,7 @@ int main(int argc, char **argv)
       CUDA_CHECK(cudaDeviceSynchronize());
       forward_pass(&net, input, x1, a1, x2, a2, x3, a3);
 
-      dim3 numBlocks = dim3((OUTPUT_LAYER + BLOCK_SIZE - 1) / BLOCK_SIZE, 1, 1);
-      dim3 numThreadsPerBlock = dim3(BLOCK_SIZE, 1, 1);
-      cross_entropy<<<numBlocks, numThreadsPerBlock>>>(OUTPUT_LAYER, BATCH_SIZE, a3, labels, loss);
+      loss_fn(BATCH_SIZE, OUTPUT_LAYER, a3, labels, loss);
       CUDA_CHECK(cudaPeekAtLastError());
       CUDA_CHECK(cudaDeviceSynchronize());
 

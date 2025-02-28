@@ -7,7 +7,7 @@ void run_softmaxCPU(int M, int N, float *input, float *output) {
 }
 
 void run_softmax1(int M, int N, float *d_input, float *d_output) {
-    dim3 numThreadsPerBlock = dim3(32, 32, 1);
+    dim3 numThreadsPerBlock = dim3(16, 16, 1);
     dim3 numBlocks = dim3((N + numThreadsPerBlock.x - 1) / numThreadsPerBlock.x, (M + numThreadsPerBlock.y - 1) / numThreadsPerBlock.y, 1);
 
     softmax<<<numBlocks, numThreadsPerBlock>>>(M, N, d_input, d_output);
@@ -27,13 +27,13 @@ void run_reluCPU(int M, int N, float *input, float *output) {
 }
 
 void run_relu1(int M, int N, float *d_input, float *d_output) {
-    dim3 numThreadsPerBlock = dim3(32, 32, 1);
-    dim3 numBlocks = dim3((N + numThreadsPerBlock.y - 1) / numThreadsPerBlock.y, (M + numThreadsPerBlock.x - 1) / numThreadsPerBlock.x, 1);
+    dim3 numThreadsPerBlock = dim3(16, 16, 1);
+    dim3 numBlocks = dim3((N + numThreadsPerBlock.x - 1) / numThreadsPerBlock.x, (M + numThreadsPerBlock.y - 1) / numThreadsPerBlock.y, 1);
     ReLU2d_kernel<<<numBlocks, numThreadsPerBlock>>>(M, N, d_input, d_output);
 }
 
 void run_relu2(int M, int N, float *d_input, float *d_output) {
-    dim3 numThreadsPerBlock = dim3(32, 1, 1);
+    dim3 numThreadsPerBlock = dim3(16, 1, 1);
     dim3 numBlocks = dim3((M * N + numThreadsPerBlock.x - 1) / numThreadsPerBlock.x, 1, 1);
     ReLU1d_kernel<<<numBlocks, numThreadsPerBlock>>>(M, N, d_input, d_output);
 }

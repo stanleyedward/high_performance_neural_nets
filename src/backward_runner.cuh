@@ -2,6 +2,8 @@
 
 #include <cuda_runtime.h>
 
-void run_kernel_BW(int kernel_num, int M, int N, int K, int batch_size,
-                   float lr, float *weights, float *biases, float *inputs, float *activations,
-                   float *outputs, float *labels, float *gradients, float *out_gradients);
+void run_cross_entropy_backwards(int M, int N, float *outputs, float *labels, float *gradients);
+void run_linearBW(int M, int N, int K, float *weights, float *biases, float *d_l, float *out_d_l);
+void run_relu_backwards(int M, int N, float *inputs, float *gradients, float *out_gradients);
+void run_update_layer(int M, int N, int batch_size, float lr,
+                      float *weights, float *biases, float *activations, float *gradients);
