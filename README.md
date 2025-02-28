@@ -84,6 +84,32 @@ epoch 9 238ms | total loss 1279.85 | accuracy 0.901542 | val loss 232.655 | val 
 finished training, total time = 2418 ms
 ```
 
+optimized
+
+```sh
+Hyperparameters:
+Hidden Layer 1: 256
+Hidden Layer 2: 256
+Output Layer: 10
+Batch Size: 256
+Learning Rate: 0.015000
+Epochs: 10
+
+read mnist took 1502 ms
+initialization took 1870 ms
+epoch 0 152ms | total loss 5959.48 | accuracy 0.49389 | val loss 532.008 | val accuracy 0.766927
+epoch 1 134ms | total loss 2441.29 | accuracy 0.809545 | val loss 346.696 | val accuracy 0.848958
+epoch 2 130ms | total loss 1852.65 | accuracy 0.851412 | val loss 300.553 | val accuracy 0.870092
+epoch 3 130ms | total loss 1633.53 | accuracy 0.870443 | val loss 278.407 | val accuracy 0.88131
+epoch 4 130ms | total loss 1513.88 | accuracy 0.880743 | val loss 265.112 | val accuracy 0.888421
+epoch 5 130ms | total loss 1438.36 | accuracy 0.887136 | val loss 256.43 | val accuracy 0.893329
+epoch 6 130ms | total loss 1386.06 | accuracy 0.891209 | val loss 249.866 | val accuracy 0.898538
+epoch 7 130ms | total loss 1344.04 | accuracy 0.894865 | val loss 243.874 | val accuracy 0.901042
+epoch 8 130ms | total loss 1308.87 | accuracy 0.898387 | val loss 238.541 | val accuracy 0.904347
+epoch 9 130ms | total loss 1277.53 | accuracy 0.901309 | val loss 233.229 | val accuracy 0.906651
+finished training, total time = 1326 ms
+```
+
 https://github.com/NVIDIA/cuda-samples.git
 
 ```sh
@@ -138,8 +164,6 @@ Result = PASS
 ```
 
 ### notes
-- for the last layer use mm2 kernel
-- 1d relu is faster than 2d relu
 - for smem tiling tile_dim has to be a multiple of M, N, K
 
 ### References
