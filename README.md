@@ -12,6 +12,7 @@ nn
 - [x] backward pass module
 - [x] modularize code 
 - [x] create make file
+- [x] operator fusion
 - [ ] remove hardcoded blocksize in activation, loss and backward
   
   -  pin mem
@@ -95,19 +96,19 @@ Batch Size: 256
 Learning Rate: 0.015000
 Epochs: 10
 
-read mnist took 1502 ms
-initialization took 1870 ms
-epoch 0 152ms | total loss 5959.48 | accuracy 0.49389 | val loss 532.008 | val accuracy 0.766927
-epoch 1 134ms | total loss 2441.29 | accuracy 0.809545 | val loss 346.696 | val accuracy 0.848958
-epoch 2 130ms | total loss 1852.65 | accuracy 0.851412 | val loss 300.553 | val accuracy 0.870092
-epoch 3 130ms | total loss 1633.53 | accuracy 0.870443 | val loss 278.407 | val accuracy 0.88131
-epoch 4 130ms | total loss 1513.88 | accuracy 0.880743 | val loss 265.112 | val accuracy 0.888421
-epoch 5 130ms | total loss 1438.36 | accuracy 0.887136 | val loss 256.43 | val accuracy 0.893329
-epoch 6 130ms | total loss 1386.06 | accuracy 0.891209 | val loss 249.866 | val accuracy 0.898538
-epoch 7 130ms | total loss 1344.04 | accuracy 0.894865 | val loss 243.874 | val accuracy 0.901042
-epoch 8 130ms | total loss 1308.87 | accuracy 0.898387 | val loss 238.541 | val accuracy 0.904347
-epoch 9 130ms | total loss 1277.53 | accuracy 0.901309 | val loss 233.229 | val accuracy 0.906651
-finished training, total time = 1326 ms
+read mnist took 1455 ms
+initialization took 1856 ms
+epoch 0 145ms | total loss 5952.69 | accuracy 0.493807 | val loss 530.737 | val accuracy 0.766727
+epoch 1 131ms | total loss 2445.21 | accuracy 0.809712 | val loss 347.652 | val accuracy 0.849259
+epoch 2 124ms | total loss 1850.98 | accuracy 0.85198 | val loss 299.182 | val accuracy 0.870593
+epoch 3 124ms | total loss 1634.43 | accuracy 0.87066 | val loss 277.45 | val accuracy 0.880909
+epoch 4 124ms | total loss 1515.12 | accuracy 0.88106 | val loss 264.485 | val accuracy 0.88772
+epoch 5 124ms | total loss 1439.08 | accuracy 0.886936 | val loss 255.782 | val accuracy 0.893029
+epoch 6 124ms | total loss 1385.66 | accuracy 0.891309 | val loss 248.788 | val accuracy 0.897236
+epoch 7 124ms | total loss 1344.27 | accuracy 0.895049 | val loss 243.218 | val accuracy 0.901643
+epoch 8 124ms | total loss 1309.52 | accuracy 0.898705 | val loss 238.019 | val accuracy 0.904447
+epoch 9 124ms | total loss 1280.01 | accuracy 0.901376 | val loss 232.578 | val accuracy 0.905248
+finished training, total time = 1268 ms
 ```
 
 https://github.com/NVIDIA/cuda-samples.git
