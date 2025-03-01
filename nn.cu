@@ -28,7 +28,7 @@
 #define BATCH_SIZE 256 // N 32
 #define TILE_WIDTH 16
 #define EPOCHS 10
-#define LR 0.015
+#define LR 0.04
 
 
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
@@ -51,10 +51,8 @@ void backward_pass(NeuralNetwork *net, float *input, float *labels, float *x1, f
 {
   run_cross_entropy_backwards(BATCH_SIZE, OUTPUT_LAYER, a3, labels, net->grad_layer3);
   CUDA_CHECK(cudaPeekAtLastError());
-
   run_linear_backward_fused(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, net->grad_layer3, net->grad_layer2);
   CUDA_CHECK(cudaPeekAtLastError());
-
   run_linear_backward_fused(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, net->grad_layer2, net->grad_layer1);
   CUDA_CHECK(cudaPeekAtLastError());
 
@@ -213,7 +211,7 @@ int main(int argc, char **argv)
 
     float epoch_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time).count();
     total_time += epoch_time;
-    std::cout << "epoch " << epoch << " " << epoch_time << "ms | total loss " << total_loss << " | accuracy " << (float)correct / total << " | val loss " << val_loss << " | val accuracy " << (float)val_correct / val_total << std::endl;
+    std::cout << "epoch " << epoch << " " << epoch_time << "ms | loss " << total_loss << " | acc " << (float)correct / total << " | val loss " << val_loss << " | val acc " << (float)val_correct / val_total << std::endl;
   }
   std::cout << "finished training, total time = " << total_time << " ms" << std::endl;
 

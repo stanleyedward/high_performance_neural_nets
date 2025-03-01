@@ -96,19 +96,19 @@ Batch Size: 256
 Learning Rate: 0.015000
 Epochs: 10
 
-read mnist took 1455 ms
-initialization took 1856 ms
-epoch 0 145ms | total loss 5952.69 | accuracy 0.493807 | val loss 530.737 | val accuracy 0.766727
-epoch 1 131ms | total loss 2445.21 | accuracy 0.809712 | val loss 347.652 | val accuracy 0.849259
-epoch 2 124ms | total loss 1850.98 | accuracy 0.85198 | val loss 299.182 | val accuracy 0.870593
-epoch 3 124ms | total loss 1634.43 | accuracy 0.87066 | val loss 277.45 | val accuracy 0.880909
-epoch 4 124ms | total loss 1515.12 | accuracy 0.88106 | val loss 264.485 | val accuracy 0.88772
-epoch 5 124ms | total loss 1439.08 | accuracy 0.886936 | val loss 255.782 | val accuracy 0.893029
-epoch 6 124ms | total loss 1385.66 | accuracy 0.891309 | val loss 248.788 | val accuracy 0.897236
-epoch 7 124ms | total loss 1344.27 | accuracy 0.895049 | val loss 243.218 | val accuracy 0.901643
-epoch 8 124ms | total loss 1309.52 | accuracy 0.898705 | val loss 238.019 | val accuracy 0.904447
-epoch 9 124ms | total loss 1280.01 | accuracy 0.901376 | val loss 232.578 | val accuracy 0.905248
-finished training, total time = 1268 ms
+read mnist took 1454 ms
+initialization took 113 ms
+epoch 0 144ms | total loss 5960.6 | accuracy 0.49379 | val loss 531.156 | val accuracy 0.766627
+epoch 1 124ms | total loss 2440.52 | accuracy 0.810196 | val loss 347.35 | val accuracy 0.848057
+epoch 2 123ms | total loss 1854.34 | accuracy 0.851345 | val loss 300.709 | val accuracy 0.870092
+epoch 3 123ms | total loss 1636.67 | accuracy 0.870393 | val loss 277.957 | val accuracy 0.880208
+epoch 4 123ms | total loss 1517.52 | accuracy 0.880626 | val loss 264.129 | val accuracy 0.887821
+epoch 5 123ms | total loss 1439.88 | accuracy 0.886936 | val loss 255.306 | val accuracy 0.892929
+epoch 6 123ms | total loss 1385.67 | accuracy 0.890875 | val loss 248.474 | val accuracy 0.897736
+epoch 7 123ms | total loss 1343.11 | accuracy 0.895015 | val loss 242.408 | val accuracy 0.901342
+epoch 8 123ms | total loss 1307.31 | accuracy 0.898738 | val loss 236.967 | val accuracy 0.905048
+epoch 9 123ms | total loss 1276.57 | accuracy 0.901542 | val loss 231.689 | val accuracy 0.908153
+finished training, total time = 1252 ms
 ```
 
 https://github.com/NVIDIA/cuda-samples.git
