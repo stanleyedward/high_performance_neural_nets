@@ -33,15 +33,9 @@
 
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
 {
-  // run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, x1, net->biases1);
-  // CUDA_CHECK(cudaPeekAtLastError());
-  // run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_1, x1, a1);
   run_kernel_fused(2, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, a1, net->biases1);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  // run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, x2, net->biases2);
-  // CUDA_CHECK(cudaPeekAtLastError());
-  // run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_2, x2, a2);
   run_kernel_fused(2, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, a2, net->biases2);
   CUDA_CHECK(cudaPeekAtLastError());
 
@@ -58,14 +52,10 @@ void backward_pass(NeuralNetwork *net, float *input, float *labels, float *x1, f
   run_cross_entropy_backwards(BATCH_SIZE, OUTPUT_LAYER, a3, labels, net->grad_layer3);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  run_linearBW(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, net->weights3, net->biases3, net->grad_layer3, net->grad_layer2);
-  CUDA_CHECK(cudaPeekAtLastError());
-  run_relu_backwards(BATCH_SIZE, HIDDEN_LAYER_2, a2, net->grad_layer2, net->grad_layer2);
+  run_linear_backward_fused(BATCH_SIZE, HIDDEN_LAYER_2, OUTPUT_LAYER, a2, net->weights3, net->biases3, net->grad_layer3, net->grad_layer2);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  run_linearBW(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, net->weights2, net->biases2, net->grad_layer2, net->grad_layer1);
-  CUDA_CHECK(cudaPeekAtLastError());
-  run_relu_backwards(BATCH_SIZE, HIDDEN_LAYER_1, a1, net->grad_layer1, net->grad_layer1);
+  run_linear_backward_fused(BATCH_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, a1, net->weights2, net->biases2, net->grad_layer2, net->grad_layer1);
   CUDA_CHECK(cudaPeekAtLastError());
 
   // Update layers
