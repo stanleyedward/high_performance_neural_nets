@@ -12,6 +12,7 @@
 #include "activation_runner.cuh"
 #include "backward_runner.cuh"
 #include "loss.cuh"
+#include "fused_runner.cuh"
 
 #define TEST_LENGTH 10000
 #define TRAIN_LENGTH 60000
@@ -32,14 +33,16 @@
 
 void forward_pass(NeuralNetwork *net, float *input, float *x1, float *a1, float *x2, float *a2, float *x3, float *a3)
 {
-  run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, x1, net->biases1);
-  CUDA_CHECK(cudaPeekAtLastError());
-  run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_1, x1, a1);
+  // run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, x1, net->biases1);
+  // CUDA_CHECK(cudaPeekAtLastError());
+  // run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_1, x1, a1);
+  run_kernel_fused(2, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_1, INPUT_SIZE, input, net->weights1, a1, net->biases1);
   CUDA_CHECK(cudaPeekAtLastError());
 
-  run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, x2, net->biases2);
-  CUDA_CHECK(cudaPeekAtLastError());
-  run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_2, x2, a2);
+  // run_kernel_MM(4, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, x2, net->biases2);
+  // CUDA_CHECK(cudaPeekAtLastError());
+  // run_kernel_relu(1, BATCH_SIZE, HIDDEN_LAYER_2, x2, a2);
+  run_kernel_fused(2, BLOCK_SIZE, BATCH_SIZE, HIDDEN_LAYER_2, HIDDEN_LAYER_1, a1, net->weights2, a2, net->biases2);
   CUDA_CHECK(cudaPeekAtLastError());
 
   run_kernel_MM(2, BLOCK_SIZE, BATCH_SIZE, OUTPUT_LAYER, HIDDEN_LAYER_2, a2, net->weights3, x3, net->biases3);

@@ -3,6 +3,8 @@
 #include <cuda_runtime.h>
 #include <cassert>
 #include "mm_runner.cuh"
+#include "activation_runner.cuh"
+#include "fused_runner.cuh"
 
 // Matrix A: MxK 
 // Matrix B: KxN
@@ -69,11 +71,11 @@ int main()
     float milliseconds;
     
     //warmup kernel
-    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    run_kernel_MM(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     printf("Warmup kernel completed\n");
 
     cudaEventRecord(start);
-    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    run_kernel_fused(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -86,6 +88,7 @@ int main()
     
     cudaEventRecord(start);
     run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    run_kernel_relu(1, M, N, d_C, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
