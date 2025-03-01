@@ -31,3 +31,10 @@ void run_update_layer(int M, int N, int batch_size, float lr,
     dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
     update_layer<<<blocks, threads>>>(M, N, batch_size, lr, weights, biases, activations, gradients);
 }
+
+void run_linear_backward_fused(int M, int N, int K, float *input, float *weights, float *biases, float *d_l, float *out_d_l)
+{
+    dim3 threads(16, 16, 1);
+    dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
+    linear_backward_fused<<<blocks, threads>>>(M, N, K, input, weights, biases, d_l, out_d_l);
+}
