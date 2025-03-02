@@ -21,7 +21,7 @@
 #define BATCH_SIZE 256 //N 32
 #define TILE_WIDTH 16
 #define EPOCHS 10
-#define LR 0.015
+#define LR 0.0400
 
 // Modify the CUDA_CHECK macro to print more information
 #define CUDA_CHECK(call)                                               \
