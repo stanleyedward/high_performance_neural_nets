@@ -3,6 +3,11 @@ cuda 121
 nn
 
 ### Matrix Multiplication
+
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="matrix multiplication GFLOPS" src="assets/mm_gflops.png"> Matrix Multiplication GFLOPS |  <img width="1604" alt="matrix multiplication time" src="assets/mm_time.png"> Matrix Multiplication Time (ms) |
+
 ```sh
 Matrix A: 1024 x 1024
 Matrix B: 1024 x 1024
@@ -23,6 +28,11 @@ SMEM Blocking Kernel max error: 9.155273e-05
 ```
 
 ### Activation
+
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="softmax GFLOPS" src="assets/softmax_gflops.png"> Softmax GFLOPS |  <img width="1604" alt="softmax time" src="assets/softmax_time.png"> Softmax Time (ms) |
+
 ```sh
 Matrix sizes: 1024 x 1024
 
