@@ -4,8 +4,8 @@
 #include <math.h>
 #include "activation_runner.cuh"
 
-#define M 4096  // Number of rows /OUTPUT
-#define N 4096  // Number of columns /BATCH_SIZE
+#define M 1024  // Number of rows /OUTPUT
+#define N 1024  // Number of columns /BATCH_SIZE
 
 int main()
 {

@@ -11,9 +11,9 @@
 // Matrix C: MxN
 // C = A * B
 
-#define M 4096 //256
-#define N 4096 //32
-#define K 4096 //784
+#define M 1024 //256
+#define N 1024 //32
+#define K 1024 //784
 #define BLOCK_SIZE 16
 
 //nvcc test.cu src/mm_runner.cu -I./src -o test.o -L/usr/local/cuda/lib64 -lcudart

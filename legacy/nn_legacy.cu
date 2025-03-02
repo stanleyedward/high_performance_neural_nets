@@ -81,48 +81,6 @@ __global__ void linear_forward(int batch_size, int n, int out_w, float *input, f
   }
 }
 
-// __global__ void linear_forward(int batch_size, int n, int out_w, float *input, float *weights, float *biases, float *output)
-// {
-//   // simon oz
-//   // Assuming blockDim.x == blockDim.y == TILE_WIDTH
-//   int tx = threadIdx.x;
-//   int ty = threadIdx.y;
-//   int row = blockIdx.y * TILE_WIDTH + ty;
-//   int col = blockIdx.x * TILE_WIDTH + tx;
-
-//   __shared__ float input_tile[TILE_WIDTH][TILE_WIDTH];
-//   __shared__ float weights_tile[TILE_WIDTH][TILE_WIDTH];
-
-//   float sum = 0.f;
-//   for (int tile_offset = 0; tile_offset < n; tile_offset += TILE_WIDTH)
-//   {
-//     // Load input tile
-//     if (row < batch_size && tile_offset + tx < n)
-//       input_tile[ty][tx] = input[row * n + tile_offset + tx];
-//     else
-//       input_tile[ty][tx] = 0.f;
-
-//     // Load weights tile
-//     if (col < out_w && tile_offset + ty < n)
-//       weights_tile[ty][tx] = weights[(tile_offset + ty) * out_w + col];
-//     else
-//       weights_tile[ty][tx] = 0.f;
-
-//     __syncthreads();
-
-//     for (int k = 0; k < TILE_WIDTH; k++)
-//     {
-//       sum += input_tile[ty][k] * weights_tile[k][tx];
-//     }
-//     __syncthreads();
-//   }
-
-//   if (row < batch_size && col < out_w)
-//   {
-//     output[row * out_w + col] = biases[col] + sum;
-//   }
-// }
-
 __global__ void linear_backward(int batch_size, int n, int out_w, float *weights, float *biases, float *d_l, float *out_d_l)
 {
   const uint column = blockIdx.x * blockDim.x + threadIdx.x;
