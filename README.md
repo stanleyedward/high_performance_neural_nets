@@ -62,7 +62,7 @@ SMEM reduction Kernel max error: 4.097819e-08
   |             | Time per epoch   | Performance (%) | Performance (x)|
   | :---:          |  :---:           | :---:| :---:|
   | **Naive NN**      |  239 ms          |100%|1.00x|
-  | **Optimized NN**  |  123 ms          |100 + 48.53%|1.94x|
+  | **Optimized NN**  |  123 ms          |148.53%|1.94x|
 
 
 #### Naive NN implementation

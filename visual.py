@@ -14,8 +14,8 @@ mm_times = {"naive": [0.0440, 0.2243, 1.7428, 13.5844, 108.3955, 704.1966],
              "1d block tiling": [0.0319, 0.0413, 0.1573, 0.8926, 6.4709, 48.2440]}
 
 softmax_times = {"naive": [0.0236, 0.0696, 0.4557, 3.4499, 28.3904, 220.0117],
-                 "smem": [0.0451, 0.0410, 0.0543, 0.0788, 0.2796, 0.9288],
-                 "unrolled_smem": [0.0143, 0.0151, 0.0191, 0.0460, 0.2488, 0.8243]}
+                 "shared memory reduction": [0.0451, 0.0410, 0.0543, 0.0788, 0.2796, 0.9288],
+                 "unrolled smem": [0.0143, 0.0151, 0.0191, 0.0460, 0.2488, 0.8243]}
 
 softmax_gflops = {"naive": [5.5652, 7.5294, 4.6022, 2.4316, 1.1819, 0.6100],
                  "shared memory reduction": [2.5455, 11.2000, 33.8113, 93.0909, 105.0256, 126.4476],
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         ax.plot(matrix_sizes, mm_gflops[method], label=method)
     ax.set_xlabel('Matrix Size')
     ax.set_ylabel('GFLOPS')
-    ax.set_title('Matrix Multiplication GFLOPS')
+    ax.set_title('FMA/MatMul GFLOPS')
     ax.legend()
     plt.show()
     
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         ax.plot(matrix_sizes, mm_times[method], label=method)
     ax.set_xlabel('Matrix Size')
     ax.set_ylabel('Time (ms)')
-    ax.set_title('Matrix Multiplication Time (log scale)')
+    ax.set_title('FMA/MatMul Time (log y-scale)')
     ax.legend()
     ax.set_yscale('log')
     plt.show()
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         ax.plot(matrix_sizes, softmax_times[method], label=method)
     ax.set_xlabel('Matrix Size')
     ax.set_ylabel('Time (ms)')
-    ax.set_title('Softmax Time (log scale)')
+    ax.set_title('Softmax Time (log y-scale)')
     ax.set_yscale('log')
     ax.legend()
     plt.show()
