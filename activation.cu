@@ -4,8 +4,8 @@
 #include <math.h>
 #include "activation_runner.cuh"
 
-#define M 1024  // Number of rows /OUTPUT
-#define N 1024  // Number of columns /BATCH_SIZE
+#define M 4096  // Number of rows /OUTPUT
+#define N 4096  // Number of columns /BATCH_SIZE
 
 int main()
 {
@@ -43,19 +43,19 @@ int main()
     run_kernel_relu(1, M, N, d_input, d_act1);
     
     cudaEventRecord(start);
-    // run_kernel_softmax(1, M, N, d_input, d_act1);
-    run_kernel_relu(1, M, N, d_input, d_act1);
+    run_kernel_softmax(1, M, N, d_input, d_act1);
+    // run_kernel_relu(1, M, N, d_input, d_act1);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("act1 execution time: %.4f ms\n", milliseconds);
-    float gflops_act1 = (7.0f * M * N) / (milliseconds * 1e6);
+    float gflops_act1 = (8.0f * M * N) / (milliseconds * 1e6);
     printf("act1 GFLOPS: %.4f\n", gflops_act1);
     printf("\n");
 
     cudaEventRecord(start);
-    // run_kernel_softmax(2, M, N, d_input, d_act2);
-    run_kernel_relu(2, M, N, d_input, d_act2);
+    run_kernel_softmax(2, M, N, d_input, d_act2);
+    // run_kernel_relu(2, M, N, d_input, d_act2);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -68,8 +68,8 @@ int main()
     cudaMemcpy(h_act2, d_act2, bytes, cudaMemcpyDeviceToHost);
     printf("\n");
 
-    // run_kernel_softmax(0, M, N, h_input, h_cpu_out);
-    run_kernel_relu(0, M, N, h_input, h_cpu_out);
+    run_kernel_softmax(0, M, N, h_input, h_cpu_out);
+    // run_kernel_relu(0, M, N, h_input, h_cpu_out);
     verify_results_activation(M, N, h_act1, h_act2, h_cpu_out);
 
     cudaFree(d_input);

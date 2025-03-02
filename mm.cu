@@ -11,9 +11,9 @@
 // Matrix C: MxN
 // C = A * B
 
-#define M 1024 //256
-#define N 1024 //32
-#define K 1024 //784
+#define M 4096 //256
+#define N 4096 //32
+#define K 4096 //784
 #define BLOCK_SIZE 16
 
 //nvcc test.cu src/mm_runner.cu -I./src -o test.o -L/usr/local/cuda/lib64 -lcudart
@@ -75,7 +75,8 @@ int main()
     printf("Warmup kernel completed\n");
 
     cudaEventRecord(start);
-    run_kernel_fused(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    run_kernel_MM(1, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    // run_kernel_fused(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -87,8 +88,8 @@ int main()
     printf("Performance: %.2f GFLOPS\n\n", gflops_kernel1);
     
     cudaEventRecord(start);
-    run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
-    run_kernel_relu(1, M, N, d_C, d_C);
+    run_kernel_MM(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    // run_kernel_relu(1, M, N, d_C, d_C);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -99,6 +100,32 @@ int main()
     printf("Time: %.4f ms\n", milliseconds);
     printf("Performance: %.2f GFLOPS\n", gflops_kernel2);
     
+    cudaEventRecord(start);
+    run_kernel_MM(3, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    // run_kernel_fused(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    cudaMemcpy(h_C1, d_C, bytes_C, cudaMemcpyDeviceToHost);
+    double gflops_kernel3 = (2.0 * M * N * K) / (milliseconds * 1e6);
+    printf("Matrix Multiplication 3:\n");
+    printf("Time: %.4f ms\n", milliseconds);
+    printf("Performance: %.2f GFLOPS\n\n", gflops_kernel3);
+
+    cudaEventRecord(start);
+    run_kernel_MM(4, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    // run_kernel_fused(2, BLOCK_SIZE, M, N, K, d_A, d_B, d_C, d_bias);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    cudaMemcpy(h_C1, d_C, bytes_C, cudaMemcpyDeviceToHost);
+    double gflops_kernel4 = (2.0 * M * N * K) / (milliseconds * 1e6);
+    printf("Matrix Multiplication 4:\n");
+    printf("Time: %.4f ms\n", milliseconds);
+    printf("Performance: %.2f GFLOPS\n\n", gflops_kernel4);
+
     // Compute CPU reference
     run_kernel_MM(0, BLOCK_SIZE, M, N, K, h_A, h_B, h_C_cpu, h_bias);
     verify_results_MM(M, N, K, h_C1, h_C2, h_C_cpu);

@@ -2,28 +2,6 @@
 cuda 121
 nn
 
-
-### TODO
-- [x] add verify results to activation 
-- [x] read mnist dataset
-- [x] softmax optim
-- [x] matmul optim
-- [x] update the mm kernels to compute biases
-- [x] backward pass module
-- [x] modularize code 
-- [x] create make file
-- [x] operator fusion
-- [ ] remove hardcoded blocksize in activation, loss and backward
-  
-  -  pin mem
-  -  coalesed accesses
-  -  shared mem blocking
-  -  tiling
-
-- [ ] streams
-  - data loading
-  - kernel launches
-
 ### Matrix Multiplication
 ```sh
 Matrix A: 1024 x 1024
@@ -70,19 +48,19 @@ Batch Size: 256
 Learning Rate: 0.015000
 Epochs: 10
 
-read mnist took 2389 ms
-initialization took 1863 ms
-epoch 0 270ms | total loss 5945.81 | accuracy 0.495126 | val loss 529.544 | val accuracy 0.766827
-epoch 1 238ms | total loss 2439.71 | accuracy 0.810113 | val loss 346.389 | val accuracy 0.847957
-epoch 2 238ms | total loss 1854.15 | accuracy 0.851613 | val loss 299.758 | val accuracy 0.869792
-epoch 3 239ms | total loss 1638.33 | accuracy 0.870476 | val loss 276.336 | val accuracy 0.880609
-epoch 4 241ms | total loss 1517.68 | accuracy 0.880826 | val loss 262.91 | val accuracy 0.887821
-epoch 5 238ms | total loss 1440.33 | accuracy 0.886685 | val loss 254.229 | val accuracy 0.892127
-epoch 6 239ms | total loss 1386.69 | accuracy 0.891476 | val loss 247.852 | val accuracy 0.897135
-epoch 7 238ms | total loss 1344.75 | accuracy 0.894732 | val loss 242.446 | val accuracy 0.901242
-epoch 8 239ms | total loss 1309.51 | accuracy 0.898438 | val loss 237.558 | val accuracy 0.903646
-epoch 9 238ms | total loss 1279.85 | accuracy 0.901542 | val loss 232.655 | val accuracy 0.90625
-finished training, total time = 2418 ms
+read mnist took 2381 ms
+initialization took 1860 ms
+epoch 0 269ms | total loss 5963.16 | accuracy 0.494525 | val loss 534.968 | val accuracy 0.768429
+epoch 1 238ms | total loss 2455.19 | accuracy 0.809145 | val loss 348.982 | val accuracy 0.847155
+epoch 2 238ms | total loss 1856.23 | accuracy 0.851179 | val loss 300.288 | val accuracy 0.86899
+epoch 3 239ms | total loss 1630.9 | accuracy 0.870593 | val loss 278.598 | val accuracy 0.88151
+epoch 4 238ms | total loss 1515.37 | accuracy 0.880809 | val loss 265.987 | val accuracy 0.888522
+epoch 5 239ms | total loss 1439.92 | accuracy 0.886301 | val loss 256.641 | val accuracy 0.89353
+epoch 6 239ms | total loss 1385.83 | accuracy 0.891026 | val loss 249.132 | val accuracy 0.898438
+epoch 7 239ms | total loss 1344.56 | accuracy 0.895065 | val loss 243.329 | val accuracy 0.901142
+epoch 8 239ms | total loss 1309.36 | accuracy 0.898237 | val loss 238.113 | val accuracy 0.903446
+epoch 9 239ms | total loss 1278.04 | accuracy 0.901159 | val loss 233.016 | val accuracy 0.90615
+finished training, total time = 2417 ms
 ```
 
 optimized
@@ -110,6 +88,10 @@ epoch 8 123ms | total loss 1307.31 | accuracy 0.898738 | val loss 236.967 | val 
 epoch 9 123ms | total loss 1276.57 | accuracy 0.901542 | val loss 231.689 | val accuracy 0.908153
 finished training, total time = 1252 ms
 ```
+
+1.94x faster
+
+48.53% faster
 
 https://github.com/NVIDIA/cuda-samples.git
 
