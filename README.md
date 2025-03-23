@@ -120,7 +120,10 @@ finished training, total time = 1252 ms
 ### References
 
 - https://siboehm.com/articles/22/CUDA-MMM
+- https://0mean1sigma.com/xgemm/
 - https://www.youtube.com/playlist?list=PL5XwKDZZlwaY7t0M5OLprpkJUIrF8Lc9j
+- https://www.youtube.com/watch?v=GetaI7KhbzM
+
 
 ### Nsight info
 #### FMA
