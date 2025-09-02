@@ -1,8 +1,8 @@
 ## High Performance NNs
 i was learning GPU computing by optimizing neural network kernels using cuda and night
 
-todo
-[ ] implement convolutional layers
+todo <be>
+- [ ] implement convolutional layers
 
 
 ##### Setup
