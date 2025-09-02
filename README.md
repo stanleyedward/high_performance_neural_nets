@@ -1,5 +1,9 @@
 ## High Performance NNs
-i was learning GPU computing by optimizing neural network kernels using cuda and nsight
+i was learning GPU computing by optimizing neural network kernels using cuda and night
+
+todo
+[ ] implement convolutional layers
+
 
 ##### Setup
 ```sh
